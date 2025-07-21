@@ -36,6 +36,13 @@ class GranularSampler {
         // Envelope
         this.envelopeTime = 0; // 0 = shortest, 100 = longest
         
+        // Recording
+        this.mediaRecorder = null;
+        this.recordedChunks = [];
+        this.isRecording = false;
+        this.recordingDestination = null;
+        this.recordingStream = null;
+        
         this.initAudio();
         this.setupEventListeners();
         this.setupKeyboardControls();
@@ -64,6 +71,11 @@ class GranularSampler {
         this.masterGainNode.gain.value = this.volume;
         this.masterGainNode.connect(this.audioContext.destination);
         
+        // Create recording destination
+        this.recordingDestination = this.audioContext.createMediaStreamDestination();
+        this.masterGainNode.connect(this.recordingDestination);
+        this.recordingStream = this.recordingDestination.stream;
+        
         // Create filter
         this.filterNode = this.audioContext.createBiquadFilter();
         this.filterNode.type = 'bandpass';
@@ -86,6 +98,127 @@ class GranularSampler {
             console.log('Resuming audio context...');
             await this.audioContext.resume();
             console.log('Audio context state:', this.audioContext.state);
+        }
+    }
+    
+    startRecording() {
+        if (!this.recordingStream || this.isRecording) return;
+        
+        this.recordedChunks = [];
+        
+        try {
+            // Try different MIME types for better compatibility
+            let mimeType = 'audio/webm;codecs=opus';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'audio/webm';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/mp4';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = ''; // Let browser choose
+                    }
+                }
+            }
+            
+            this.mediaRecorder = new MediaRecorder(this.recordingStream, 
+                mimeType ? { mimeType } : {}
+            );
+            
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.recordedChunks.push(event.data);
+                }
+            };
+            
+            this.mediaRecorder.onstop = () => {
+                this.saveRecording();
+            };
+            
+            this.mediaRecorder.start(100); // Collect data every 100ms
+            this.isRecording = true;
+            
+            const recordButton = document.getElementById('recordButton');
+            recordButton.textContent = '⏹️ STOP';
+            recordButton.style.background = '#ff4444';
+            recordButton.classList.add('recording');
+            
+            console.log('Recording started with MIME type:', mimeType);
+            
+        } catch (error) {
+            console.error('Recording failed:', error);
+            alert('Recording not supported in this browser. Try Chrome or Firefox.');
+        }
+    }
+    
+    stopRecording() {
+        if (!this.mediaRecorder || !this.isRecording) return;
+        
+        this.mediaRecorder.stop();
+        this.isRecording = false;
+        
+        const recordButton = document.getElementById('recordButton');
+        recordButton.textContent = '🔴 REC';
+        recordButton.style.background = '';
+        recordButton.classList.remove('recording');
+        
+        console.log('Recording stopped');
+    }
+    
+    saveRecording() {
+        if (this.recordedChunks.length === 0) {
+            console.log('No recorded data to save');
+            return;
+        }
+        
+        // Determine file extension based on MIME type
+        const firstChunk = this.recordedChunks[0];
+        let extension = 'webm';
+        let mimeType = 'audio/webm';
+        
+        if (firstChunk.type.includes('mp4')) {
+            extension = 'mp4';
+            mimeType = 'audio/mp4';
+        } else if (firstChunk.type.includes('wav')) {
+            extension = 'wav';
+            mimeType = 'audio/wav';
+        }
+        
+        const blob = new Blob(this.recordedChunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link with timestamp
+        const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+        const filename = `grains_${timestamp}.${extension}`;
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+        this.recordedChunks = [];
+        
+        console.log('Recording saved as:', filename);
+        
+        // Show feedback to user
+        const recordButton = document.getElementById('recordButton');
+        const originalText = recordButton.textContent;
+        recordButton.textContent = '✅ SAVED';
+        setTimeout(() => {
+            recordButton.textContent = '🔴 REC';
+        }, 2000);
+    }
+    
+    toggleRecording() {
+        if (this.isRecording) {
+            this.stopRecording();
+        } else {
+            this.startRecording();
         }
     }
     
@@ -121,6 +254,14 @@ class GranularSampler {
             document.getElementById('looperToggle').textContent = 
                 `Looper: ${this.looperEnabled ? 'ON' : 'OFF'}`;
         });
+        
+        // Recording button
+        const recordButton = document.getElementById('recordButton');
+        if (recordButton) {
+            recordButton.addEventListener('click', () => {
+                this.toggleRecording();
+            });
+        }
     }
     
     setupSliderControls() {
@@ -171,9 +312,12 @@ class GranularSampler {
         };
         
         Object.keys(sliders).forEach(id => {
-            document.getElementById(id).addEventListener('input', (e) => {
-                sliders[id](e.target.value);
-            });
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', (e) => {
+                    sliders[id](e.target.value);
+                });
+            }
         });
     }
     
@@ -602,3 +746,5 @@ window.addEventListener('resize', () => {
         window.granularSampler.drawWaveform();
     }
 });
+        
+  

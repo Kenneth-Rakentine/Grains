@@ -1,133 +1,716 @@
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+    --soviet-green: #2d4a2b;
+    --phosphor-green: #00ff41;
+    --phosphor-dim: #00cc33;
+    --metal-gray: #3a3a3a;
+    --metal-light: #555555;
+    --rust-orange: #cc6600;
+    --dust-beige: #d4c4a8;
+    --deep-black: #0a0a0a;
+    --record-red: #cc0000;
+    --chrome-silver: #c0c0c0;
+    
+    /* Noise textures */
+    --grain-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    --metal-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='scratches' x='0' y='0' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,20 L100,25' stroke='%23ffffff' stroke-width='0.2' opacity='0.1'/%3E%3Cpath d='M0,45 L100,42' stroke='%23ffffff' stroke-width='0.1' opacity='0.05'/%3E%3Cpath d='M0,70 L100,68' stroke='%23ffffff' stroke-width='0.15' opacity='0.08'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23scratches)'/%3E%3C/svg%3E");
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background: #292424;
-    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    background: 
+        linear-gradient(135deg, var(--deep-black) 0%, var(--metal-gray) 50%, #1a1a1a 100%),
+        var(--grain-noise);
+    color: var(--phosphor-green);
     margin: 0;
     padding: 20px;
     user-select: none;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
 }
 
-#gImg {
-    display: flex;
-align-items:center;
-padding-left: 300px;
-width: 1000; 
-height: 600px; 
-align-items: center;
+/* Global noise overlay */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--grain-noise);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 1000;
+    animation: grain-flicker 0.2s infinite alternate;
+}
 
+@keyframes grain-flicker {
+    0% { opacity: 0.12; }
+    100% { opacity: 0.18; }
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
+h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 2.5em;
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--dust-beige);
+    text-shadow: 
+        0 0 10px var(--phosphor-green),
+        0 0 20px var(--phosphor-green),
+        2px 2px 0 var(--deep-black);
+    letter-spacing: 3px;
+    position: relative;
+}
+
+h1::before {
+    content: 'ГРАНУЛЯР';
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.3em;
+    color: var(--rust-orange);
+    letter-spacing: 5px;
+    opacity: 0.8;
+}
+
+h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--phosphor-green), transparent);
+    box-shadow: 0 0 10px var(--phosphor-green);
+}
+
+/* File drop zone */
 .drop-zone {
-    border: 2px dashed #666;
-    border-radius: 8px;
+    border: 3px dashed var(--metal-light);
+    border-radius: 12px;
     padding: 40px;
     text-align: center;
-    margin-bottom: 20px;
-    transition: all 0.3s;
+    margin-bottom: 30px;
+    background: 
+        linear-gradient(145deg, #1a1a1a, #2a2a2a),
+        var(--metal-texture);
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.5),
+        0 5px 15px rgba(0,0,0,0.3);
+}
+
+.drop-zone::before {
+    content: 'ЗАГРУЗКА АУДИО';
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-size: 8px;
+    color: var(--rust-orange);
+    letter-spacing: 1px;
+    opacity: 0.7;
 }
 
 .drop-zone.dragover {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--phosphor-green);
+    background: 
+        linear-gradient(145deg, #1a2a1a, #2a3a2a),
+        var(--metal-texture);
+    box-shadow: 
+        inset 0 0 30px rgba(0,255,65,0.2),
+        0 0 30px rgba(0,255,65,0.3);
+    transform: scale(1.02);
 }
 
+.drop-zone h3 {
+    font-family: 'Orbitron', monospace;
+    color: var(--dust-beige);
+    margin: 0;
+    font-size: 1.2em;
+    letter-spacing: 2px;
+}
+
+/* Oscilloscope waveform container */
 .waveform-container {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    height: 200px;
+    background: 
+        linear-gradient(145deg, #0a0a0a, #1a1a1a),
+        var(--metal-texture);
+    border: 6px solid var(--metal-gray);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 40px;
+    height: 250px;
     position: relative;
+    box-shadow: 
+        inset 0 0 30px rgba(0,0,0,0.8),
+        0 0 40px rgba(0,255,65,0.1),
+        0 10px 30px rgba(0,0,0,0.5);
+    
+    /* Panel details */
+    border-image: linear-gradient(45deg, var(--metal-gray), var(--chrome-silver), var(--metal-gray)) 1;
+}
+
+.waveform-container::before {
+    content: 'ОСЦИЛЛОГРАФ-1М • МОДЕЛЬ Г-47';
+    position: absolute;
+    top: 12px;
+    left: 20px;
+    font-size: 9px;
+    color: var(--dust-beige);
+    letter-spacing: 1px;
+    opacity: 0.8;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.waveform-container::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, var(--rust-orange), #aa4400);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 15px var(--rust-orange),
+        inset 0 0 5px rgba(0,0,0,0.3);
+    animation: status-pulse 3s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+    0%, 100% { 
+        box-shadow: 0 0 15px var(--rust-orange), inset 0 0 5px rgba(0,0,0,0.3);
+        opacity: 1;
+    }
+    50% { 
+        box-shadow: 0 0 25px var(--rust-orange), inset 0 0 5px rgba(0,0,0,0.3);
+        opacity: 0.7;
+    }
 }
 
 #waveform {
     width: 100%;
     height: 100%;
-    background: #000;
-    border-radius: 4px;
+    background: 
+        radial-gradient(ellipse at center, #003300 0%, #001100 50%, #000000 100%);
+    border-radius: 12px;
+    border: 3px inset var(--metal-gray);
+    filter: contrast(1.3) saturate(1.4);
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* CRT scan lines effect */
+#waveform::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0,255,65,0.03) 2px,
+        rgba(0,255,65,0.03) 4px
+    );
+    pointer-events: none;
+    border-radius: 9px;
 }
 
 .playhead {
     position: absolute;
-    top: 20px;
-    bottom: 20px;
+    top: 30px;
+    bottom: 30px;
     width: 2px;
-    background: #ff4444;
+    background: linear-gradient(0deg, var(--phosphor-green), #ffffff, var(--phosphor-green));
     pointer-events: none;
     z-index: 10;
+    box-shadow: 
+        0 0 10px var(--phosphor-green),
+        0 0 20px var(--phosphor-green);
+    animation: playhead-glow 1s ease-in-out infinite alternate;
 }
 
+@keyframes playhead-glow {
+    0% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+/* Soviet control panel grid */
 .controls {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+/* Fractured overlay pattern */
+.controls::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(45deg, transparent 48%, rgba(204,102,0,0.02) 49%, rgba(204,102,0,0.02) 51%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(0,255,65,0.01) 49%, rgba(0,255,65,0.01) 51%, transparent 52%);
+    pointer-events: none;
 }
 
 .control-group {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 20px;
+    background: 
+        linear-gradient(145deg, #252525, #1a1a1a),
+        var(--metal-texture);
+    border: 4px solid var(--metal-gray);
+    border-radius: 15px;
+    padding: 25px;
+    position: relative;
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.4),
+        0 5px 15px rgba(0,0,0,0.4),
+        0 0 20px rgba(0,255,65,0.05);
+    
+    /* Panel rivets */
+    background-image: 
+        radial-gradient(circle at 15px 15px, var(--chrome-silver) 2px, transparent 3px),
+        radial-gradient(circle at calc(100% - 15px) 15px, var(--chrome-silver) 2px, transparent 3px),
+        radial-gradient(circle at 15px calc(100% - 15px), var(--chrome-silver) 2px, transparent 3px),
+        radial-gradient(circle at calc(100% - 15px) calc(100% - 15px), var(--chrome-silver) 2px, transparent 3px),
+        var(--metal-texture);
 }
 
 .control-group h3 {
     margin-top: 0;
-    color: #4CAF50;
+    margin-bottom: 20px;
+    color: var(--dust-beige);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--rust-orange);
+    padding-bottom: 8px;
+    position: relative;
+    font-family: 'Orbitron', monospace;
 }
 
+.control-group h3::before {
+    content: '◆';
+    position: absolute;
+    left: -20px;
+    color: var(--rust-orange);
+    font-size: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Clay-sculpting inspired sliders */
 .slider-container {
-    margin: 15px 0;
+    margin: 20px 0;
+    position: relative;
 }
 
 .slider-container label {
     display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: var(--phosphor-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 input[type="range"] {
     width: 100%;
-    height: 4px;
-    background: #666;
+    height: 8px;
+    background: linear-gradient(90deg, var(--soviet-green), var(--dust-beige));
     outline: none;
-    border-radius: 2px;
+    border-radius: 4px;
+    box-shadow: 
+        inset 0 0 8px rgba(0,0,0,0.6),
+        0 1px 3px rgba(0,0,0,0.3);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+input[type="range"]:hover {
+    box-shadow: 
+        inset 0 0 8px rgba(0,0,0,0.6),
+        0 0 10px rgba(0,255,65,0.2);
 }
 
 input[type="range"]::-webkit-slider-thumb {
     appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #4CAF50;
+    width: 22px;
+    height: 22px;
+    background: 
+        radial-gradient(circle, var(--phosphor-green) 30%, var(--soviet-green) 70%);
     cursor: pointer;
     border-radius: 50%;
+    border: 3px solid var(--chrome-silver);
+    box-shadow: 
+        0 0 15px rgba(0,255,65,0.4),
+        inset 0 0 8px rgba(0,0,0,0.3),
+        0 2px 5px rgba(0,0,0,0.3);
+    transition: all 0.15s ease;
+    position: relative;
 }
 
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 0 20px rgba(0,255,65,0.6),
+        inset 0 0 8px rgba(0,0,0,0.3),
+        0 3px 8px rgba(0,0,0,0.4);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+    box-shadow: 
+        0 0 25px rgba(0,255,65,0.8),
+        inset 0 0 10px rgba(0,0,0,0.5),
+        0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* 70s Cassette Deck Record Button */
+#recordButton {
+    background: 
+        radial-gradient(ellipse at 30% 30%, #ff4444, var(--record-red) 40%, #aa0000 100%);
+    color: white;
+    border: 4px solid var(--chrome-silver);
+    padding: 15px 25px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+    min-width: 120px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 4px 15px rgba(0,0,0,0.4),
+        inset 0 2px 5px rgba(255,255,255,0.2),
+        inset 0 -2px 5px rgba(0,0,0,0.3),
+        0 0 20px rgba(204,0,0,0.3);
+    transition: all 0.15s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+#recordButton::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    height: 40%;
+    background: linear-gradient(180deg, 
+        rgba(255,255,255,0.3) 0%, 
+        rgba(255,255,255,0.1) 50%, 
+        transparent 100%
+    );
+    border-radius: 50px 50px 20px 20px;
+    pointer-events: none;
+}
+
+#recordButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 6px 20px rgba(0,0,0,0.5),
+        inset 0 2px 5px rgba(255,255,255,0.3),
+        inset 0 -2px 5px rgba(0,0,0,0.4),
+        0 0 30px rgba(204,0,0,0.5);
+}
+
+#recordButton:active {
+    transform: translateY(1px);
+    box-shadow: 
+        0 2px 8px rgba(0,0,0,0.6),
+        inset 0 1px 3px rgba(255,255,255,0.2),
+        inset 0 -1px 3px rgba(0,0,0,0.4),
+        0 0 15px rgba(204,0,0,0.4);
+}
+
+/* Recording state styling */
+#recordButton.recording {
+    background: 
+        radial-gradient(ellipse at 30% 30%, #ff6666, #ff0000 40%, #cc0000 100%);
+    animation: record-pulse 1s ease-in-out infinite alternate;
+    box-shadow: 
+        0 4px 15px rgba(0,0,0,0.4),
+        inset 0 2px 5px rgba(255,255,255,0.2),
+        inset 0 -2px 5px rgba(0,0,0,0.3),
+        0 0 40px rgba(255,0,0,0.6);
+}
+
+@keyframes record-pulse {
+    0% { 
+        box-shadow: 
+            0 4px 15px rgba(0,0,0,0.4),
+            inset 0 2px 5px rgba(255,255,255,0.2),
+            inset 0 -2px 5px rgba(0,0,0,0.3),
+            0 0 40px rgba(255,0,0,0.6);
+    }
+    100% { 
+        box-shadow: 
+            0 4px 15px rgba(0,0,0,0.4),
+            inset 0 2px 5px rgba(255,255,255,0.2),
+            inset 0 -2px 5px rgba(0,0,0,0.3),
+            0 0 60px rgba(255,0,0,0.8);
+    }
+}
+
+/* Standard Soviet buttons */
+button {
+    background: linear-gradient(145deg, var(--soviet-green), var(--metal-gray));
+    color: var(--phosphor-green);
+    border: 2px solid var(--dust-beige);
+    padding: 12px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+        0 3px 8px rgba(0,0,0,0.3),
+        inset 0 1px 3px rgba(255,255,255,0.1);
+    transition: all 0.15s ease;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,65,0.2), transparent);
+    transition: left 0.4s ease;
+}
+
+button:hover::before {
+    left: 100%;
+}
+
+button:hover {
+    box-shadow: 
+        0 0 15px rgba(0,255,65,0.3),
+        inset 0 1px 3px rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+    border-color: var(--phosphor-green);
+}
+
+button:active {
+    transform: translateY(1px);
+    box-shadow: 
+        0 1px 3px rgba(0,0,0,0.5),
+        inset 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Clay-sculpting inspired mobile keyboard */
+.mobile-keyboard {
+    background: 
+        linear-gradient(145deg, #2a2a2a, #1a1a1a),
+        var(--metal-texture);
+    border: 4px solid var(--metal-gray);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 
+        inset 0 0 25px rgba(0,0,0,0.4),
+        0 8px 20px rgba(0,0,0,0.5);
+    position: relative;
+}
+
+.mobile-keyboard::before {
+    content: 'КЛАВИАТУРА';
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-size: 8px;
+    color: var(--rust-orange);
+    letter-spacing: 1px;
+    opacity: 0.7;
+}
+
+.keyboard-section {
+    margin-bottom: 25px;
+}
+
+.keyboard-section h4 {
+    margin: 0 0 15px 0;
+    color: var(--phosphor-green);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'Orbitron', monospace;
+    border-bottom: 1px solid var(--phosphor-dim);
+    padding-bottom: 5px;
+}
+
+.keyboard-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.key-btn {
+    background: 
+        linear-gradient(145deg, var(--dust-beige), var(--metal-gray));
+    border: 2px solid var(--soviet-green);
+    color: var(--deep-black);
+    padding: 15px 12px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    min-width: 40px;
+    text-align: center;
+    transition: all 0.1s ease;
+    position: relative;
+    box-shadow: 
+        0 3px 6px rgba(0,0,0,0.3),
+        inset 0 1px 3px rgba(255,255,255,0.2);
+    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+}
+
+.key-btn:active, .key-btn.active {
+    background: 
+        linear-gradient(145deg, var(--phosphor-green), var(--soviet-green));
+    color: var(--deep-black);
+    transform: scale(0.95) translateY(2px);
+    box-shadow: 
+        0 1px 3px rgba(0,0,0,0.5),
+        inset 0 0 8px rgba(0,0,0,0.2);
+    border-color: var(--phosphor-green);
+}
+
+.key-btn.scan-key {
+    background: 
+        linear-gradient(145deg, var(--rust-orange), #aa4400);
+    border-color: var(--chrome-silver);
+    color: white;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+}
+
+.key-btn.scan-key:active, .key-btn.scan-key.active {
+    background: 
+        linear-gradient(145deg, #ff8844, var(--rust-orange));
+}
+
+.key-btn.space-key {
+    background: 
+        linear-gradient(145deg, var(--chrome-silver), var(--metal-gray));
+    min-width: 140px;
+    font-weight: 700;
+    color: var(--deep-black);
+}
+
+/* Status displays with Soviet flair */
+.status {
+    background: 
+        linear-gradient(145deg, #1a1a1a, #2a2a2a),
+        var(--metal-texture);
+    border: 3px solid var(--rust-orange);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--dust-beige);
+    position: relative;
+    box-shadow: 
+        inset 0 0 15px rgba(0,0,0,0.4),
+        0 3px 10px rgba(0,0,0,0.3);
+}
+
+.status::before {
+    content: '◉';
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    color: var(--phosphor-green);
+    font-size: 12px;
+    animation: status-blink 2s infinite;
+}
+
+@keyframes status-blink {
+    0%, 80% { opacity: 1; }
+    90% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+/* Filter envelope visualization */
 .filter-envelope {
     width: 100%;
     height: 80px;
-    background: #000;
-    border-radius: 4px;
-    margin-top: 10px;
+    background: 
+        radial-gradient(ellipse at center, #001100 0%, #000000 100%);
+    border-radius: 6px;
+    margin-top: 15px;
+    border: 2px inset var(--metal-gray);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
 }
 
-.status {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
+/* Active status indicators */
+.active-grains {
+    color: var(--phosphor-green);
+    font-weight: 700;
+    text-shadow: 0 0 5px var(--phosphor-green);
 }
 
+/* Instructions panel */
 .instructions {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 20px;
-    font-size: 14px;
+    background: 
+        linear-gradient(145deg, #2a2a2a, #1a1a1a),
+        var(--metal-texture);
+    border: 3px solid var(--metal-gray);
+    border-radius: 12px;
+    padding: 25px;
+    font-size: 12px;
     line-height: 1.6;
+    color: var(--dust-beige);
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.3),
+        0 5px 15px rgba(0,0,0,0.3);
+}
+
+.instructions h3 {
+    color: var(--phosphor-green);
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 2px;
+    margin-top: 0;
+    text-transform: uppercase;
 }
 
 .key-map {
@@ -137,94 +720,7 @@ input[type="range"]::-webkit-slider-thumb {
     margin-top: 15px;
 }
 
-.mobile-keyboard {
-    background: #2a2a2a;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.keyboard-section {
-    margin-bottom: 20px;
-}
-
-.keyboard-section h4 {
-    margin: 0 0 10px 0;
-    color: #4CAF50;
-    font-size: 14px;
-}
-
-.keyboard-row {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 8px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.key-btn {
-    background: #444;
-    border: 1px solid #666;
-    color: white;
-    padding: 12px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: monospace;
-    cursor: pointer;
-    user-select: none;
-    min-width: 35px;
-    text-align: center;
-    transition: all 0.1s;
-}
-
-.key-btn:active, .key-btn.active {
-    background: #4CAF50;
-    transform: scale(0.95);
-}
-
-.key-btn.scan-key {
-    background: #333;
-    border-color: #555;
-    min-width: 30px;
-}
-
-.key-btn.scan-key:active, .key-btn.scan-key.active {
-    background: #ff4444;
-}
-
-.key-btn.space-key {
-    background: #555;
-    min-width: 120px;
-}
-
-.key-btn.space-key:active, .key-btn.space-key.active {
-    background: #4CAF50;
-}
-
-.active-grains {
-    color: #4CAF50;
-    font-weight: bold;
-}
-
-button {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-button:hover {
-    background: #45a049;
-}
-
-button:disabled {
-    background: #666;
-    cursor: not-allowed;
-}
-
+/* Responsive design */
 @media (max-width: 768px) {
     .container {
         padding: 10px;
@@ -239,7 +735,41 @@ button:disabled {
     }
     
     .key-btn {
-        padding: 15px 10px;
-        font-size: 11px;
+        padding: 18px 12px;
+        font-size: 10px;
     }
+    
+    h1 {
+        font-size: 2em;
+    }
+    
+    .waveform-container {
+        height: 200px;
+        padding: 20px;
+    }
+}
+
+/* Additional fractured design elements */
+.control-group:nth-child(odd)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-top: 15px solid var(--rust-orange);
+    opacity: 0.1;
+}
+
+.control-group:nth-child(even)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-right: 12px solid transparent;
+    border-bottom: 12px solid var(--phosphor-dim);
+    opacity: 0.1;
 }
