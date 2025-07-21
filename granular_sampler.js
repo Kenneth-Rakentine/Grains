@@ -44,7 +44,7 @@ class GranularSampler {
     }
     
     async initAudio() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); //remove "webkit" from window.webkitAudioContext?
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
         // Create delay effect
         this.delayNode = this.audioContext.createDelay(1.0); // Max 1 second delay
@@ -365,21 +365,36 @@ class GranularSampler {
         const canvas = document.getElementById('waveform');
         const ctx = canvas.getContext('2d');
         
-        // Set canvas size properly
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * window.devicePixelRatio;
-        canvas.height = rect.height * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        if (!this.audioBuffer || !canvas) {
+            console.log('No audio buffer or canvas found');
+            return;
+        }
         
+        // Get the actual displayed size
+        const rect = canvas.getBoundingClientRect();
         const displayWidth = rect.width;
         const displayHeight = rect.height;
         
-        const data = this.audioBuffer.getChannelData(0);
-        const step = Math.ceil(data.length / displayWidth);
+        // Set canvas resolution to match display size
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
         
+        // Clear the canvas
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, displayWidth, displayHeight);
         
+        // Get audio data
+        const data = this.audioBuffer.getChannelData(0);
+        const step = Math.ceil(data.length / displayWidth);
+        
+        console.log('Drawing waveform:', {
+            bufferLength: data.length,
+            canvasWidth: displayWidth,
+            canvasHeight: displayHeight,
+            step: step
+        });
+        
+        // Draw waveform
         ctx.strokeStyle = '#4CAF50';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -388,21 +403,27 @@ class GranularSampler {
             let min = 1.0;
             let max = -1.0;
             
-            // Find min and max in this segment for better visualization
-            for (let j = 0; j < step; j++) {
-                const sample = data[i * step + j];
+            // Sample multiple points for better visualization
+            for (let j = 0; j < step && (i * step + j) < data.length; j++) {
+                const sample = data[i * step + j] || 0;
                 if (sample < min) min = sample;
                 if (sample > max) max = sample;
             }
             
-            const y1 = (min * displayHeight / 2) + (displayHeight / 2);
-            const y2 = (max * displayHeight / 2) + (displayHeight / 2);
+            // Convert to canvas coordinates
+            const y1 = ((min + 1) * displayHeight) / 2;
+            const y2 = ((max + 1) * displayHeight) / 2;
             
+            // Draw line for this column
+            if (i === 0) {
+                ctx.moveTo(i, y1);
+            }
             ctx.moveTo(i, y1);
             ctx.lineTo(i, y2);
         }
         
         ctx.stroke();
+        console.log('Waveform drawn successfully');
     }
     
     setScanPosition(position) {
@@ -572,5 +593,12 @@ class GranularSampler {
 
 // Initialize the sampler when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new GranularSampler();
+    window.granularSampler = new GranularSampler();
+});
+
+// Add resize listener for waveform
+window.addEventListener('resize', () => {
+    if (window.granularSampler && window.granularSampler.audioBuffer) {
+        window.granularSampler.drawWaveform();
+    }
 });
