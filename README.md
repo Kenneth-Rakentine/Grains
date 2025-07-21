@@ -26,6 +26,14 @@ https://kenneth-rakentine.github.io/Grains/
 -  **Delay time/Feedback/Mix** control the rate of the echo effect, the strength of the echo, and the volume of the effected signal respectively
 
 
+**RECORDING AUDIO**
+
+1. Load an MP3 and start playing with granular synthesis
+2. Press R key or click 🔴 RECORD button
+3. Make your granular magic - everything you hear gets recorded
+4. Press R again or click ⏹️ STOP REC to stop
+5. File downloads automatically as grains_2025-07-21T18-30-45.webm
+
 
 ## Credits:
 Help from Claude Sonnet 4
