@@ -1342,6 +1342,7 @@ button:active {
     
     .keyboard-row {
         gap: 8px;
+        /* color:black; */
     }
 }
 

@@ -1731,7 +1731,7 @@ window.addEventListener('resize', () => {
     }
 });
 
-// Additional iOS audio unlock attempts on page focus/visibility change
+// Additional iOS audio unlock attempts on page focus/visibility change 
 document.addEventListener('visibilitychange', async () => {
     if (!document.hidden && window.granularSampler && window.granularSampler.audioContext) {
         if (window.granularSampler.audioContext.state === 'suspended') {
@@ -1740,7 +1740,7 @@ document.addEventListener('visibilitychange', async () => {
     }
 });
 
-// Force audio context resume on window focus (iOS Safari specific fix)
+// Force audio context resume on window focus (Mobile/iOS Safari specific fix)
 window.addEventListener('focus', async () => {
     if (window.granularSampler && window.granularSampler.audioContext) {
         if (window.granularSampler.audioContext.state === 'suspended') {
