@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GRAINS: Granular Browser Sampler</title>
+    <title>GRAINS: Industrial Granular Browser Sampler</title>
     <link rel="icon" href="icon.png" type="image/png">
     <link rel="stylesheet" href="granular_sampler.css">
 </head>
 <body>
     <div class="container">
-        <h1><img id="gImg" src="grainsImg.jpeg" alt="Grains Logo"></h1>
+        <h1>Granular Sampler</h1>
         
         <div class="drop-zone" id="dropZone">
             <h3>Drop MP3 file here or click to browse</h3>
-            <input type="file" id="fileInput" accept=".mp3" style="display: none;">
+            <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,.aac" style="display: none;">
         </div>
         
         <div class="status" id="status">
@@ -34,7 +34,7 @@
             </div>
             
             <div class="keyboard-section">
-                <h4>Sample Position (1-9, 0=Start)</h4>
+                <h4>Sample Position & Navigation</h4>
                 <div class="keyboard-row">
                     <button class="key-btn scan-key" data-key="1">1</button>
                     <button class="key-btn scan-key" data-key="2">2</button>
@@ -49,10 +49,17 @@
                     <button class="key-btn scan-key" data-key="9">9</button>
                     <button class="key-btn scan-key" data-key="0">0</button>
                 </div>
+                <div class="keyboard-row">
+                    <button class="key-btn nav-key" data-key="ArrowLeft">← Fine Back</button>
+                    <button class="key-btn nav-key" data-key="ArrowRight">→ Fine Forward</button>
+                </div>
+                <div style="font-size: 10px; opacity: 0.7; margin-top: 8px; text-align: center;">
+                    Numbers: Major positions (0-9) • Arrows: Micro positions (90 total)
+                </div>
             </div>
             
             <div class="keyboard-section">
-                <h4>Chromatic Pitch Control (Hold)</h4>
+                <h4>Chromatic Pitch Control</h4>
                 <div class="keyboard-row">
                     <button class="key-btn" data-key="q" data-pitch="-12">Q</button>
                     <button class="key-btn" data-key="w" data-pitch="-11">W</button>
@@ -90,7 +97,7 @@
         
         <div class="controls" style="display: none;" id="controls">
             <div class="control-group">
-                <h3>Granular</h3>
+                <h3>Granular Synthesis</h3>
                 <div class="slider-container">
                     <label>Grain Size: <span id="grainSizeValue">50ms</span></label>
                     <input type="range" id="grainSize" min="10" max="200" value="50">
@@ -103,39 +110,166 @@
                     <label>Window Scan: <span id="windowScanValue">0%</span></label>
                     <input type="range" id="windowScan" min="0" max="100" value="0">
                 </div>
+                <div class="slider-container">
+                    <label>Time Stretch: <span id="timeStretchValue">1.0x</span></label>
+                    <input type="range" id="timeStretch" min="0.25" max="4.0" value="1.0" step="0.1">
+                </div>
+                <div class="slider-container">
+                    <label>Grain Envelope: <span id="envelopeTimeValue">0%</span></label>
+                    <input type="range" id="envelopeTime" min="0" max="100" value="0">
+                </div>
                 <button id="looperToggle">Looper: OFF</button>
             </div>
             
             <div class="control-group">
-                <h3>Effects</h3>
+                <h3>Filter & LFO</h3>
                 <div class="slider-container">
-                    <label>Frequency: <span id="filterFreqValue">1000Hz</span></label>
+                    <label>Filter Frequency: <span id="filterFreqValue">1000Hz</span></label>
                     <input type="range" id="filterFreq" min="100" max="8000" value="1000">
                 </div>
                 <div class="slider-container">
-                    <label>Q Factor: <span id="filterQValue">1</span></label>
+                    <label>Filter Q: <span id="filterQValue">1</span></label>
                     <input type="range" id="filterQ" min="0.1" max="10" value="1" step="0.1">
                 </div>
                 <div class="slider-container">
-                    <label>Envelope Amount: <span id="envAmountValue">0%</span></label>
-                    <input type="range" id="envAmount" min="0" max="100" value="0">
+                    <label>LFO Speed: <span id="lfoSpeedValue">0.5Hz</span></label>
+                    <input type="range" id="lfoSpeed" min="0.1" max="10" value="0.5" step="0.1">
                 </div>
                 <div class="slider-container">
-                    <label>Grain Envelope Shape: <span id="envelopeTimeValue">0%</span></label>
-                    <input type="range" id="envelopeTime" min="0" max="100" value="0">
+                    <label>LFO Depth: <span id="lfoDepthValue">0%</span></label>
+                    <input type="range" id="lfoDepth" min="0" max="100" value="0">
+                </div>
+                <div class="slider-container">
+                    <label>LFO Shape:</label>
+                    <select id="lfoShape" style="width: 100%; padding: 8px; background: #a8a8a8; color: #1a1a1a; border: 2px solid #707070; border-radius: 3px; font-family: 'Space Mono', monospace;">
+                        <option value="sine">Sine</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="sawtooth">Sawtooth</option>
+                        <option value="square">Square</option>
+                    </select>
                 </div>
                 <canvas class="filter-envelope" id="filterEnvelope"></canvas>
             </div>
             
             <div class="control-group">
-                <h3>Volume & Delay</h3>
+                <h3>Formant Processing</h3>
                 <div class="slider-container">
-                    <label>Master Volume: <span id="volumeValue">70%</span></label>
-                    <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+                    <label>Formant Mix: <span id="formantMixValue">50%</span></label>
+                    <input type="range" id="formantMix" min="0" max="100" value="50">
+                </div>
+                <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px;">
+                    0% = Dry Signal • 100% = Full Formant Processing
                 </div>
                 <div class="slider-container">
+                    <label>Formant 1: <span id="formant1Value">400Hz</span></label>
+                    <input type="range" id="formant1" min="200" max="800" value="400">
+                </div>
+                <div class="slider-container">
+                    <label>Formant 2: <span id="formant2Value">800Hz</span></label>
+                    <input type="range" id="formant2" min="600" max="1200" value="800">
+                </div>
+                <div class="slider-container">
+                    <label>Formant 3: <span id="formant3Value">1200Hz</span></label>
+                    <input type="range" id="formant3" min="1000" max="1800" value="1200">
+                </div>
+                <div class="slider-container">
+                    <label>Formant 4: <span id="formant4Value">2400Hz</span></label>
+                    <input type="range" id="formant4" min="2000" max="3000" value="2400">
+                </div>
+                <div class="slider-container">
+                    <label>Formant 5: <span id="formant5Value">3200Hz</span></label>
+                    <input type="range" id="formant5" min="2800" max="4000" value="3200">
+                </div>
+                
+                <!-- Formant Sequencer Section -->
+                <div class="sequencer-section">
+                    <h4>Formant Sequencer</h4>
+                    
+                    <!-- Sequencer Controls -->
+                    <div class="sequencer-controls">
+                        <button id="sequencerStart">START SEQ</button>
+                        <div class="slider-container" style="flex: 1; margin-left: 10px;">
+                            <label>Tempo: <span id="sequencerTempoValue">120 BPM</span></label>
+                            <input type="range" id="sequencerTempo" min="60" max="200" value="120">
+                        </div>
+                    </div>
+                    
+                    <!-- 5 Vertical Step Sliders -->
+                    <div class="sequencer-steps">
+                        <div class="sequencer-step">
+                            <div class="step-indicator" id="sequencerStep0">1</div>
+                            <input type="range" id="sequencerStep0" class="vertical-slider" 
+                                   min="0" max="127" value="64" orient="vertical">
+                            <div class="step-value" id="sequencerStep0Value">64</div>
+                        </div>
+                        <div class="sequencer-step">
+                            <div class="step-indicator" id="sequencerStep1">2</div>
+                            <input type="range" id="sequencerStep1" class="vertical-slider" 
+                                   min="0" max="127" value="64" orient="vertical">
+                            <div class="step-value" id="sequencerStep1Value">64</div>
+                        </div>
+                        <div class="sequencer-step">
+                            <div class="step-indicator" id="sequencerStep2">3</div>
+                            <input type="range" id="sequencerStep2" class="vertical-slider" 
+                                   min="0" max="127" value="64" orient="vertical">
+                            <div class="step-value" id="sequencerStep2Value">64</div>
+                        </div>
+                        <div class="sequencer-step">
+                            <div class="step-indicator" id="sequencerStep3">4</div>
+                            <input type="range" id="sequencerStep3" class="vertical-slider" 
+                                   min="0" max="127" value="64" orient="vertical">
+                            <div class="step-value" id="sequencerStep3Value">64</div>
+                        </div>
+                        <div class="sequencer-step">
+                            <div class="step-indicator" id="sequencerStep4">5</div>
+                            <input type="range" id="sequencerStep4" class="vertical-slider" 
+                                   min="0" max="127" value="64" orient="vertical">
+                            <div class="step-value" id="sequencerStep4Value">64</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+                        Controls formant filter amplitude (0-127)
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Wavefolder & Ring Modulation</h3>
+                <div class="slider-container">
+                    <label>Wavefold Amount: <span id="foldAmountValue">0%</span></label>
+                    <input type="range" id="foldAmount" min="0" max="100" value="0">
+                </div>
+                <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px;">
+                    Harmonic distortion with multiple fold iterations
+                </div>
+                
+                <div class="slider-container">
+                    <label>Ring Mod Source:</label>
+                    <select id="ringModSource" style="width: 100%; padding: 8px; background: #a8a8a8; color: #1a1a1a; border: 2px solid #707070; border-radius: 3px; font-family: 'Space Mono', monospace;">
+                        <option value="noise">White Noise</option>
+                        <option value="triangle">Triangle Wave</option>
+                        <option value="microphone">Microphone Input</option>
+                    </select>
+                </div>
+                <div class="slider-container">
+                    <label>Triangle Frequency: <span id="triangleFreqValue">440Hz</span></label>
+                    <input type="range" id="triangleFreq" min="50" max="2000" value="440">
+                </div>
+                <div class="slider-container">
+                    <label>Ring Mod Mix: <span id="ringModMixValue">0%</span></label>
+                    <input type="range" id="ringModMix" min="0" max="100" value="0">
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+                    Ring modulates processed signal with selected source
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Multi-Tap Delay</h3>
+                <div class="slider-container">
                     <label>Delay Time: <span id="delayTimeValue">200ms</span></label>
-                    <input type="range" id="delayTime" min="0.01" max="1" value="0.2" step="0.01">
+                    <input type="range" id="delayTime" min="0.05" max="2.0" value="0.2" step="0.01">
                 </div>
                 <div class="slider-container">
                     <label>Delay Feedback: <span id="delayFeedbackValue">30%</span></label>
@@ -145,19 +279,65 @@
                     <label>Delay Mix: <span id="delayMixValue">0%</span></label>
                     <input type="range" id="delayMix" min="0" max="1" value="0" step="0.01">
                 </div>
+                <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+                    4 taps: 0.125s, 0.25s, 0.375s, 0.5s (scaled by delay time)
+                </div>
             </div>
-
+            
+            <div class="control-group">
+                <h3>Volume & Master</h3>
+                <div class="slider-container">
+                    <label>Master Volume: <span id="volumeValue">70%</span></label>
+                    <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+                </div>
+                <div style="margin-top: 15px; font-size: 11px; opacity: 0.7;">
+                    Can go up to 200% for extra gain boost
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Granular Reverb</h3>
+                <div class="slider-container">
+                    <label>Reverb Size: <span id="reverbSizeValue">50%</span></label>
+                    <input type="range" id="reverbSize" min="0" max="100" value="50">
+                </div>
+                <div class="slider-container">
+                    <label>Reverb Decay: <span id="reverbDecayValue">30%</span></label>
+                    <input type="range" id="reverbDecay" min="0" max="100" value="30">
+                </div>
+                <div class="slider-container">
+                    <label>Pre-Delay: <span id="reverbPreDelayValue">0ms</span></label>
+                    <input type="range" id="reverbPreDelay" min="0" max="100" value="0">
+                </div>
+                <div class="slider-container">
+                    <label>Reverb Mix: <span id="reverbMixValue">0%</span></label>
+                    <input type="range" id="reverbMix" min="0" max="100" value="0">
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
+                    8-line granular reverb with cross-coupling
+                </div>
+            </div>
+            
             <div class="control-group">
                 <h3>Recording</h3>
                 <button id="recordButton">🔴 REC</button>
+                <div style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
+                    Records whatever you hear from the sampler
+                </div>
             </div>
-
+            
             <div class="control-group">
-                <h3>Status</h3>
+                <h3>Status & Navigation</h3>
                 <div>Playing: <span id="playingStatus">Stopped</span></div>
                 <div>Active Grains: <span id="activeGrains" class="active-grains">0</span></div>
-                <div>Current Position: <span id="currentPos">0.00s</span></div>
+                <div>Position: <span id="currentPos">0.0 (0.0%)</span></div>
                 <div>Loop Position: <span id="loopPos">0.00s</span></div>
+                <div style="margin-top: 15px; font-size: 11px; opacity: 0.8;">
+                    <strong>Navigation:</strong><br>
+                    • Numbers 0-9: Major positions<br>
+                    • Arrow ← →: Micro-step navigation<br>
+                    • Total: 90 positions (9×10 each)
+                </div>
             </div>
         </div>
         
@@ -167,14 +347,21 @@
                 <div>
                     <strong>Playback:</strong><br>
                     • SPACE - Start/Stop<br>
-                    • 1-9 - Scan through sample<br>
-                    • 0 - Return to start
+                    • 0-9 - Major scan positions<br>
+                    • ← → - Fine micro-navigation<br>
+                    • 90 total positions available
                 </div>
                 <div>
-                    <strong>Pitch (Chromatic):</strong><br>
+                    <strong>Chromatic Pitch:</strong><br>
                     • Q W E R T Y U I O P<br>
                     • A S D F G H J K L<br>
-                    • Z X C V B N M
+                    • Z X C V B N M<br>
+                    <br>
+                    <strong>Features:</strong><br>
+                    • 3D grain visualization<br>
+                    • Multi-tap delay system<br>
+                    • Enhanced formant processing<br>
+                    • Independent time stretching
                 </div>
             </div>
         </div>
