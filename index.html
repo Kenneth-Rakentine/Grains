@@ -9,10 +9,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>Granular Sampler</h1>
+        <h1>GRAINS</h1>
         
         <div class="drop-zone" id="dropZone">
-            <h3>Drop MP3 file here or click to browse</h3>
+            <h3>Drop Audio file here or click to browse</h3>
             <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,.aac" style="display: none;">
         </div>
         
@@ -54,7 +54,7 @@
                     <button class="key-btn nav-key" data-key="ArrowRight">→ Fine Forward</button>
                 </div>
                 <div style="font-size: 10px; opacity: 0.7; margin-top: 8px; text-align: center;">
-                    Numbers: Major positions (0-9) • Arrows: Micro positions (90 total)
+                    Number Keys: Scan waveform (0-9) • Arrows: Micro increments 
                 </div>
             </div>
             
@@ -117,12 +117,13 @@
                 <div class="slider-container">
                     <label>Grain Envelope: <span id="envelopeTimeValue">0%</span></label>
                     <input type="range" id="envelopeTime" min="0" max="100" value="0">
+                    Sharp to smooth (0% Sharp/Percussive - 100% Smooth/Blurry)
                 </div>
                 <button id="looperToggle">Looper: OFF</button>
             </div>
             
             <div class="control-group">
-                <h3>Filter & LFO</h3>
+                <h3>Filter</h3>
                 <div class="slider-container">
                     <label>Filter Frequency: <span id="filterFreqValue">1000Hz</span></label>
                     <input type="range" id="filterFreq" min="100" max="8000" value="1000">
@@ -322,7 +323,7 @@
                 <h3>Recording</h3>
                 <button id="recordButton">🔴 REC</button>
                 <div style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
-                    Records whatever you hear from the sampler
+                    Record & Save as Audio File
                 </div>
             </div>
             
@@ -336,7 +337,6 @@
                     <strong>Navigation:</strong><br>
                     • Numbers 0-9: Major positions<br>
                     • Arrow ← →: Micro-step navigation<br>
-                    • Total: 90 positions (9×10 each)
                 </div>
             </div>
         </div>
@@ -349,7 +349,6 @@
                     • SPACE - Start/Stop<br>
                     • 0-9 - Major scan positions<br>
                     • ← → - Fine micro-navigation<br>
-                    • 90 total positions available
                 </div>
                 <div>
                     <strong>Chromatic Pitch:</strong><br>
@@ -357,11 +356,7 @@
                     • A S D F G H J K L<br>
                     • Z X C V B N M<br>
                     <br>
-                    <strong>Features:</strong><br>
-                    • 3D grain visualization<br>
-                    • Multi-tap delay system<br>
-                    • Enhanced formant processing<br>
-                    • Independent time stretching
+                    
                 </div>
             </div>
         </div>
