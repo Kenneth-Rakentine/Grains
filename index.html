@@ -16,7 +16,6 @@
         </div>
 
        
-        
         <!-- Drop Zone -->
         <div class="drop-zone" id="dropZone">
             <div class="drop-content">
@@ -39,6 +38,7 @@
                         <div class="scope-grid"></div>
                         <canvas id="waveform"></canvas>
                         <div class="scan-line" id="playhead"></div>
+                        <canvas id="grainCanvas"></canvas>
                     </div>
                 </div>
                 <div class="scope-controls">
@@ -57,7 +57,7 @@
             <div class="transport-controls">
                 <button class="play-button" id="playButton">▶ PLAY</button>
                 <button class="record-button" id="recordButton">⬤ REC</button>
-                <button class="loop-button" id="looperToggle">↻ LOOP</button>
+                <button class="loop-button active" id="looperToggle">↻ LOOP</button>
             </div>
             <div class="master-volume-control">
                 <label>MASTER VOL: <span id="volumeValue">70%</span></label>
@@ -68,9 +68,10 @@
         <!-- Signal Path Diagram -->
         <div class="signal-path-diagram">
             <div class="signal-flow">
-                GRAINS → FILTER → FORMANTS → WAVEFOLDER → RING MOD → RESONANT FEEDBACK → DELAY → REVERB → OUTPUT
+                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">FORMANTS</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">OUTPUT</span>
             </div>
         </div>
+        
         
         <!-- Mobile Keyboard -->
         <div class="mobile-keyboard" style="display: none;" id="mobileKeyboard">
@@ -96,6 +97,10 @@
                     <button class="key-btn scan-key" data-key="8">8</button>
                     <button class="key-btn scan-key" data-key="9">9</button>
                     <button class="key-btn scan-key" data-key="0">0</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key-btn fine-key" data-key="ArrowLeft">◀ FINE BACK</button>
+                    <button class="key-btn fine-key" data-key="ArrowRight">FINE FORWARD ▶</button>
                 </div>
             </div>
             
@@ -178,8 +183,13 @@
                         <input type="range" id="windowScan" min="0" max="100" value="0">
                     </div>
                     <div class="slider-item compact">
-                        <label>Envelope Shape <span id="envelopeTimeValue">0%</span></label>
-                        <input type="range" id="envelopeTime" min="0" max="100" value="0">
+                        <label>Grain Shape</label>
+                        <div class="button-group">
+                            <button class="grain-shape-btn active" id="blackmanShape" data-shape="blackman">Blackman</button>
+                            <button class="grain-shape-btn" id="hanningShape" data-shape="hanning">Hanning</button>
+                            <button class="grain-shape-btn" id="downRampShape" data-shape="down-ramp">Down-Ramp</button>
+                            <button class="grain-shape-btn" id="expoDecShape" data-shape="expodec">ExpoDec</button>
+                        </div>
                     </div>
                     <div class="slider-item compact">
                         <label>Time Stretch <span id="timeStretchValue">1.0x</span></label>
@@ -279,21 +289,50 @@
                 </div>
             </div>
 
-            <!-- T-Resonator -->
+            <!-- Spectral Freeze & Phaser -->
             <div class="control-panel">
-                <h3>Resonator Feedback</h3>
+                <h3>Spectral Freeze & Phaser</h3>
+                <div class="slider-group">
+                    <div class="section-label">Spectral Freeze</div>
+                    <div class="slider-item compact">
+                        <label>Freeze Amount <span id="spectralFreezeValue">0%</span></label>
+                        <input type="range" id="spectralFreeze" min="0" max="100" value="0">
+                    </div>
+                    <div class="section-label">12-Stage Phaser</div>
+                    <div class="slider-item compact">
+                        <label>Phaser Rate <span id="phaserRateValue">0.5Hz</span></label>
+                        <input type="range" id="phaserRate" min="0.1" max="10" value="0.5" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Phaser Depth <span id="phaserDepthValue">50%</span></label>
+                        <input type="range" id="phaserDepth" min="0" max="100" value="50">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Feedback <span id="phaserFeedbackValue">0%</span></label>
+                        <input type="range" id="phaserFeedback" min="0" max="90" value="0">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Gain Boost <span id="phaserGainValue">1.0</span></label>
+                        <input type="range" id="phaserGain" min="0.5" max="3" value="1" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Panner -->
+            <div class="control-panel">
+                <h3>Binaural 3D Panner</h3>
                 <div class="slider-group">
                     <div class="slider-item compact">
-                        <label>Resonance <span id="tResonanceValue">0%</span></label>
-                        <input type="range" id="tResonance" min="0" max="99" value="0">
+                        <label>X-Axis Depth <span id="pannerXDepthValue">50%</span></label>
+                        <input type="range" id="pannerXDepth" min="0" max="100" value="50">
                     </div>
                     <div class="slider-item compact">
-                        <label>Damping <span id="tDampingValue">50%</span></label>
-                        <input type="range" id="tDamping" min="0" max="100" value="50">
+                        <label>Y-Axis Range <span id="pannerYRangeValue">50%</span></label>
+                        <input type="range" id="pannerYRange" min="0" max="100" value="50">
                     </div>
                     <div class="slider-item compact">
-                        <label>Mix <span id="tMixValue">0%</span></label>
-                        <input type="range" id="tMix" min="0" max="100" value="0">
+                        <label>Rotation Speed <span id="pannerSpeedValue">0.5Hz</span></label>
+                        <input type="range" id="pannerSpeed" min="0" max="5" value="0.5" step="0.1">
                     </div>
                 </div>
             </div>
@@ -313,10 +352,6 @@
                     <div class="slider-item compact">
                         <label>Soft Clip <span id="delaySoftClipValue">0%</span></label>
                         <input type="range" id="delaySoftClip" min="0" max="100" value="0">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Time Stretch <span id="delayStretchValue">1.0x</span></label>
-                        <input type="range" id="delayStretch" min="0.5" max="2" value="1" step="0.01">
                     </div>
                     <div class="slider-item compact">
                         <label>Mix <span id="delayMixValue">0%</span></label>
@@ -363,6 +398,7 @@
                         <li><strong>SPACE</strong> - Start/Stop</li>
                         <li><strong>1-9</strong> - Scan through sample</li>
                         <li><strong>0</strong> - Return to start</li>
+                        <li><strong>←/→</strong> - Fine navigation</li>
                     </ul>
                 </div>
                 <div class="instruction-column">

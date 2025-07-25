@@ -124,7 +124,7 @@ body {
     width: 120px;
 }
 
-/* Signal Path Diagram */
+/* Signal Path Diagram with Pulsing Glow */
 .signal-path-diagram {
     background: linear-gradient(135deg, var(--metal-dark) 0%, var(--bg-tertiary) 100%);
     border: 1px solid var(--border-dark);
@@ -141,6 +141,45 @@ body {
     letter-spacing: 1px;
     font-weight: 600;
     text-shadow: 0 0 4px var(--crt-green);
+}
+
+.process-module {
+    animation: phosphor-pulse 3s ease-in-out infinite;
+    display: inline-block;
+}
+
+.process-module:nth-child(2n) {
+    animation-delay: 0.3s;
+}
+
+.process-module:nth-child(3n) {
+    animation-delay: 0.6s;
+}
+
+.process-module:nth-child(4n) {
+    animation-delay: 0.9s;
+}
+
+.process-module:nth-child(5n) {
+    animation-delay: 1.2s;
+}
+
+@keyframes phosphor-pulse {
+    0%, 100% {
+        text-shadow: 
+            0 0 4px var(--crt-green),
+            0 0 8px var(--crt-green),
+            0 0 12px rgba(0, 255, 65, 0.3);
+        opacity: 0.9;
+    }
+    50% {
+        text-shadow: 
+            0 0 6px var(--crt-green),
+            0 0 12px var(--crt-green),
+            0 0 18px rgba(0, 255, 65, 0.5),
+            0 0 24px rgba(0, 255, 65, 0.2);
+        opacity: 1;
+    }
 }
 
 /* Drop Zone */
@@ -316,6 +355,21 @@ body {
     border-radius: 6px;
     background: transparent;
     display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#grainCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: transparent;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
 }
 
 .scan-line {
@@ -668,13 +722,13 @@ button:active {
     margin-bottom: 10px;
 }
 
-.mod-source-btn {
+.mod-source-btn, .grain-shape-btn {
     flex: 1;
     padding: 6px 10px;
     font-size: 10px;
 }
 
-.mod-source-btn.active {
+.mod-source-btn.active, .grain-shape-btn.active {
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
     color: white;
     border-color: var(--accent-primary);
@@ -761,6 +815,16 @@ button:active {
     box-shadow: 
         var(--shadow-inset),
         0 0 8px rgba(255, 171, 64, 0.4);
+}
+
+.key-btn.fine-key:active,
+.key-btn.fine-key.active {
+    background: linear-gradient(135deg, var(--crt-green) 0%, #00cc33 100%);
+    color: white;
+    border-color: var(--crt-green);
+    box-shadow: 
+        var(--shadow-inset),
+        0 0 8px rgba(0, 255, 65, 0.4);
 }
 
 .key-btn.space-key {

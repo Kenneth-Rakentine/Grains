@@ -6,7 +6,7 @@ class GranularSampler {
         this.isPlaying = false;
         this.playheadPosition = 0;
         this.loopPosition = 0;
-        this.looperEnabled = false;
+        this.looperEnabled = true; // Enable LOOP by default
         this.scanPosition = 0;
         this.currentPitch = 1.0;
         this.activePitchKeys = new Set();
@@ -21,7 +21,7 @@ class GranularSampler {
         this.grainSize = 50; // ms
         this.density = 4;
         this.windowScan = 0; // percentage
-        this.envelopeTime = 0; // 0 = shortest, 100 = longest
+        this.grainShape = 'blackman'; // blackman, hanning, down-ramp, expodec
         this.timeStretch = 1.0; // playback speed
         
         // Filter & LFO
@@ -34,7 +34,7 @@ class GranularSampler {
         this.lfoDepth = 0;
         this.lfoShape = 'sine';
         
-        // Formant Filter Bank
+        // Formant Filter Bank (improved resonance)
         this.formantFilters = [];
         this.formantFrequencies = [400, 800, 1200, 2400, 3200];
         this.formantGainNode = null;
@@ -57,28 +57,37 @@ class GranularSampler {
         this.ringModSourceType = 'noise'; // 'noise' or 'envelope'
         this.ringModEnvSpeed = 1;
         
-        // T-Resonator
-        this.tResonatorNode = null;
-        this.tResonatorFeedback = null;
-        this.tResonatorDamping = null;
-        this.tResonatorMixNode = null;
-        this.tResonatorDryNode = null;
-        this.tResonance = 0;
-        this.tDamping = 0.5;
-        this.tMix = 0;
+        // Spectral Freeze & Phaser (replacing T-Resonator)
+        this.spectralFreezeNode = null;
+        this.spectralFreeze = 0;
+        this.phaserNodes = [];
+        this.phaserLfo = null;
+        this.phaserRate = 0.5;
+        this.phaserDepth = 50;
+        this.phaserFeedback = 0;
+        this.phaserGain = 1.0;
+        this.phaserMixNode = null;
+        this.phaserDryNode = null;
+        
+        // 3D Panner (binaural leslie speaker style)
+        this.pannerNode = null;
+        this.pannerLfoX = null;
+        this.pannerLfoY = null;
+        this.pannerXDepth = 50;
+        this.pannerYRange = 50;
+        this.pannerSpeed = 0.5;
         
         // Volume
         this.masterGainNode = null;
         this.volume = 0.7; // Default to 70%
         
-        // Delay effect
+        // Delay effect (removed time stretch)
         this.delayNode = null;
         this.feedbackNode = null;
         this.delaySoftClipNode = null;
         this.delayTime = 0.2; // 200ms
         this.delayFeedback = 0.3; // 30%
         this.delaySoftClip = 0;
-        this.delayStretch = 1.0;
         this.delayMix = 0; // 0% wet signal initially
         this.delayWetNode = null;
         this.delayDryNode = null;
@@ -96,11 +105,18 @@ class GranularSampler {
         this.reverbMix = 0;
         this.reverbImpulse = null;
         
+        // Grain animation
+        this.grainCanvas = null;
+        this.grainCtx = null;
+        this.grainParticles = [];
+        
         this.initAudio();
         this.setupEventListeners();
         this.setupKeyboardControls();
         this.setupMobileKeyboard();
+        this.setupGrainAnimation();
     }
+
     async initAudio() {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
@@ -129,7 +145,7 @@ class GranularSampler {
         this.lfoGainNode.connect(this.filterNode.frequency);
         this.lfoNode.start();
         
-        // Create formant filter bank
+        // Create improved formant filter bank with higher resonance
         this.formantGainNode = this.audioContext.createGain();
         this.formantGainNode.gain.value = this.formantGain;
         
@@ -137,7 +153,7 @@ class GranularSampler {
             const filter = this.audioContext.createBiquadFilter();
             filter.type = 'bandpass';
             filter.frequency.value = this.formantFrequencies[i];
-            filter.Q.value = 10;
+            filter.Q.value = 25; // Increased Q for more resonance
             this.formantFilters.push(filter);
             
             if (i > 0) {
@@ -161,6 +177,16 @@ class GranularSampler {
         this.waveShaperNode.curve = this.makeWavefolderCurve(0);
         this.waveShaperNode.oversample = '4x';
         
+        await this.initRingModulator();
+        await this.initSpectralFreeseAndPhaser();
+        await this.init3DPanner();
+        await this.initDelay();
+        await this.initReverb();
+        
+        // Connect signal path
+        this.connectAudioNodes();
+    }
+    async initRingModulator() {
         // Create ring modulator
         this.ringModNode = this.audioContext.createGain();
         this.ringModNode.gain.value = 0;
@@ -192,26 +218,117 @@ class GranularSampler {
         this.ringModDryNode = this.audioContext.createGain();
         this.ringModMixNode.gain.value = 0;
         this.ringModDryNode.gain.value = 1;
+    }
+
+    async initSpectralFreeseAndPhaser() {
+        // Spectral Freeze (simplified using delay and feedback)
+        this.spectralFreezeNode = this.audioContext.createDelay(0.1);
+        this.spectralFreezeNode.delayTime.value = 0.05;
         
-        // Create T-Resonator
-        this.tResonatorNode = this.audioContext.createDelay(0.1);
-        this.tResonatorFeedback = this.audioContext.createGain();
-        this.tResonatorDamping = this.audioContext.createBiquadFilter();
-        this.tResonatorDamping.type = 'lowpass';
-        this.tResonatorDamping.frequency.value = 5000;
+        // Create 12-stage phaser
+        this.phaserNodes = [];
+        for (let i = 0; i < 12; i++) {
+            const allpass = this.audioContext.createBiquadFilter();
+            allpass.type = 'allpass';
+            allpass.frequency.value = 500 + i * 200;
+            allpass.Q.value = 5;
+            this.phaserNodes.push(allpass);
+            
+            if (i > 0) {
+                this.phaserNodes[i - 1].connect(allpass);
+            }
+        }
         
-        this.tResonatorMixNode = this.audioContext.createGain();
-        this.tResonatorDryNode = this.audioContext.createGain();
-        this.tResonatorMixNode.gain.value = 0;
-        this.tResonatorDryNode.gain.value = 1;
+        // Phaser LFO
+        this.phaserLfo = this.audioContext.createOscillator();
+        this.phaserLfo.type = 'sine';
+        this.phaserLfo.frequency.value = this.phaserRate;
         
-        // T-Resonator connections
-        this.tResonatorNode.connect(this.tResonatorDamping);
-        this.tResonatorDamping.connect(this.tResonatorFeedback);
-        this.tResonatorFeedback.connect(this.tResonatorNode);
-        this.tResonatorNode.connect(this.tResonatorMixNode);
+        // Connect LFO to phaser stages
+        const phaserLfoGain = this.audioContext.createGain();
+        phaserLfoGain.gain.value = 0;
+        this.phaserLfo.connect(phaserLfoGain);
         
-        // Create delay effect
+        this.phaserNodes.forEach(node => {
+            phaserLfoGain.connect(node.frequency);
+        });
+        
+        this.phaserLfo.start();
+        
+        // Phaser mix and feedback
+        this.phaserMixNode = this.audioContext.createGain();
+        this.phaserDryNode = this.audioContext.createGain();
+        this.phaserMixNode.gain.value = 0;
+        this.phaserDryNode.gain.value = 1;
+        
+        // Phaser gain boost with harmonic saturation
+        this.phaserGainNode = this.audioContext.createGain();
+        this.phaserGainNode.gain.value = this.phaserGain;
+        
+        // Harmonic saturation waveshaper
+        this.phaserSaturation = this.audioContext.createWaveShaper();
+        this.phaserSaturation.curve = this.makeHarmonicSaturationCurve();
+        this.phaserSaturation.oversample = '2x';
+        
+        // Connect phaser chain
+        if (this.phaserNodes.length > 0) {
+            this.phaserNodes[this.phaserNodes.length - 1].connect(this.phaserGainNode);
+            this.phaserGainNode.connect(this.phaserSaturation);
+            this.phaserSaturation.connect(this.phaserMixNode);
+        }
+    }
+
+    async init3DPanner() {
+        // Create 3D panner node
+        this.pannerNode = this.audioContext.createPanner();
+        this.pannerNode.panningModel = 'HRTF';
+        this.pannerNode.distanceModel = 'inverse';
+        this.pannerNode.refDistance = 1;
+        this.pannerNode.maxDistance = 10000;
+        this.pannerNode.rolloffFactor = 1;
+        this.pannerNode.coneInnerAngle = 360;
+        this.pannerNode.coneOuterAngle = 0;
+        this.pannerNode.coneOuterGain = 0;
+        
+        // Set listener position
+        if (this.audioContext.listener.positionX) {
+            this.audioContext.listener.positionX.value = 0;
+            this.audioContext.listener.positionY.value = 0;
+            this.audioContext.listener.positionZ.value = 1;
+        } else {
+            this.audioContext.listener.setPosition(0, 0, 1);
+        }
+        
+        // Create LFOs for X and Y axis movement
+        this.pannerLfoX = this.audioContext.createOscillator();
+        this.pannerLfoX.type = 'sine';
+        this.pannerLfoX.frequency.value = this.pannerSpeed;
+        
+        this.pannerLfoY = this.audioContext.createOscillator();
+        this.pannerLfoY.type = 'sine';
+        this.pannerLfoY.frequency.value = this.pannerSpeed * 0.7; // Slightly different for circular motion
+        
+        // Gain nodes for depth control
+        this.pannerXGain = this.audioContext.createGain();
+        this.pannerYGain = this.audioContext.createGain();
+        this.pannerXGain.gain.value = 0;
+        this.pannerYGain.gain.value = 0;
+        
+        // Connect LFOs to panner position
+        this.pannerLfoX.connect(this.pannerXGain);
+        this.pannerLfoY.connect(this.pannerYGain);
+        
+        if (this.pannerNode.positionX) {
+            this.pannerXGain.connect(this.pannerNode.positionX);
+            this.pannerYGain.connect(this.pannerNode.positionY);
+        }
+        
+        this.pannerLfoX.start();
+        this.pannerLfoY.start();
+    }
+
+    async initDelay() {
+        // Create delay effect (removed time stretch)
         this.delayNode = this.audioContext.createDelay(5.0);
         this.delayNode.delayTime.value = this.delayTime;
         
@@ -228,7 +345,9 @@ class GranularSampler {
         
         this.delayDryNode = this.audioContext.createGain();
         this.delayDryNode.gain.value = 1 - this.delayMix;
-        
+    }
+
+    async initReverb() {
         // Create reverb
         this.reverbNode = this.audioContext.createConvolver();
         this.reverbPreDelayNode = this.audioContext.createDelay(0.1);
@@ -243,14 +362,11 @@ class GranularSampler {
         this.reverbWetNode.gain.value = 0;
         
         this.generateReverbImpulse();
-        
-        // Connect signal path
-        this.connectAudioNodes();
     }
-    
+
     connectAudioNodes() {
         // Signal path: 
-        // Grains → Filter → Formants → Wavefolder → Ring Mod → T-Resonator → Delay → Reverb → Master
+        // Grains → Filter → Formants → Wavefolder → Ring Mod → Spectral Freeze → Phaser → 3D Panner → Delay → Reverb → Master
         
         // Filter to formant routing
         this.filterNode.connect(this.formantDryNode);
@@ -264,17 +380,21 @@ class GranularSampler {
         this.waveShaperNode.connect(this.ringModNode);
         this.waveShaperNode.connect(this.ringModDryNode);
         
-        // Ring mod to T-Resonator
-        this.ringModNode.connect(this.tResonatorNode);
-        this.ringModNode.connect(this.tResonatorDryNode);
-        this.ringModDryNode.connect(this.tResonatorNode);
-        this.ringModDryNode.connect(this.tResonatorDryNode);
+        // Ring mod to spectral freeze
+        this.ringModNode.connect(this.spectralFreezeNode);
+        this.ringModDryNode.connect(this.spectralFreezeNode);
         
-        // T-Resonator to delay
-        this.tResonatorDryNode.connect(this.delayDryNode);
-        this.tResonatorDryNode.connect(this.delayNode);
-        this.tResonatorMixNode.connect(this.delayDryNode);
-        this.tResonatorMixNode.connect(this.delayNode);
+        // Spectral freeze to phaser
+        this.spectralFreezeNode.connect(this.phaserDryNode);
+        this.spectralFreezeNode.connect(this.phaserNodes[0]);
+        
+        // Phaser to 3D panner
+        this.phaserDryNode.connect(this.pannerNode);
+        this.phaserMixNode.connect(this.pannerNode);
+        
+        // 3D panner to delay
+        this.pannerNode.connect(this.delayDryNode);
+        this.pannerNode.connect(this.delayNode);
         
         // Delay chain
         this.delayNode.connect(this.delaySoftClipNode);
@@ -297,10 +417,10 @@ class GranularSampler {
         this.reverbDryNode.connect(this.masterGainNode);
         this.reverbWetNode.connect(this.masterGainNode);
     }
+
     makeWavefolderCurve(amount) {
         const samples = 44100;
         const curve = new Float32Array(samples);
-        const deg = Math.PI / 180;
         
         for (let i = 0; i < samples; i++) {
             const x = (i * 2) / samples - 1;
@@ -338,7 +458,61 @@ class GranularSampler {
         
         return curve;
     }
-    
+
+    makeHarmonicSaturationCurve() {
+        const samples = 44100;
+        const curve = new Float32Array(samples);
+        
+        for (let i = 0; i < samples; i++) {
+            const x = (i * 2) / samples - 1;
+            // Harmonic saturation with tube-like characteristics
+            curve[i] = Math.tanh(x * 2) * 0.8 + Math.sin(x * Math.PI) * 0.1;
+            curve[i] = Math.max(-1, Math.min(1, curve[i]));
+        }
+        
+        return curve;
+    }
+    getGrainEnvelope(shape, length) {
+        const envelope = new Float32Array(length);
+        
+        switch (shape) {
+            case 'blackman':
+                for (let i = 0; i < length; i++) {
+                    const n = i / (length - 1);
+                    envelope[i] = 0.42 - 0.5 * Math.cos(2 * Math.PI * n) + 0.08 * Math.cos(4 * Math.PI * n);
+                }
+                break;
+                
+            case 'hanning':
+                for (let i = 0; i < length; i++) {
+                    const n = i / (length - 1);
+                    envelope[i] = 0.5 * (1 - Math.cos(2 * Math.PI * n));
+                }
+                break;
+                
+            case 'down-ramp':
+                for (let i = 0; i < length; i++) {
+                    envelope[i] = 1 - (i / (length - 1));
+                }
+                break;
+                
+            case 'expodec':
+                for (let i = 0; i < length; i++) {
+                    const n = i / (length - 1);
+                    envelope[i] = Math.exp(-5 * n);
+                }
+                break;
+                
+            default: // blackman
+                for (let i = 0; i < length; i++) {
+                    const n = i / (length - 1);
+                    envelope[i] = 0.42 - 0.5 * Math.cos(2 * Math.PI * n) + 0.08 * Math.cos(4 * Math.PI * n);
+                }
+        }
+        
+        return envelope;
+    }
+
     generateReverbImpulse() {
         const length = this.audioContext.sampleRate * 2;
         const impulse = this.audioContext.createBuffer(2, length, this.audioContext.sampleRate);
@@ -404,18 +578,47 @@ class GranularSampler {
         this.ringModMixNode.gain.value = mix;
         this.ringModDryNode.gain.value = 1 - mix;
     }
-    
-    updateTResonatorMix() {
-        const mix = this.tMix / 100;
-        this.tResonatorMixNode.gain.value = mix;
-        this.tResonatorDryNode.gain.value = 1 - mix;
+
+    updateSpectralFreeze() {
+        // Simple spectral freeze using delay feedback
+        const feedbackAmount = this.spectralFreeze / 100 * 0.95;
+        if (!this.spectralFeedbackNode) {
+            this.spectralFeedbackNode = this.audioContext.createGain();
+            this.spectralFreezeNode.connect(this.spectralFeedbackNode);
+            this.spectralFeedbackNode.connect(this.spectralFreezeNode);
+        }
+        this.spectralFeedbackNode.gain.value = feedbackAmount;
+    }
+
+    updatePhaser() {
+        // Update phaser LFO rate
+        this.phaserLfo.frequency.value = this.phaserRate;
         
-        // Update resonance (feedback)
-        this.tResonatorFeedback.gain.value = this.tResonance / 100 * 0.99;
+        // Update phaser depth
+        const depthAmount = (this.phaserDepth / 100) * 1000;
+        if (this.phaserLfoGain) {
+            this.phaserLfoGain.gain.value = depthAmount;
+        }
         
-        // Update damping
-        const dampingFreq = 200 + (1 - this.tDamping / 100) * 7800;
-        this.tResonatorDamping.frequency.value = dampingFreq;
+        // Update gain with harmonic saturation at higher levels
+        this.phaserGainNode.gain.value = this.phaserGain;
+        if (this.phaserGain > 1.5) {
+            // Enable harmonic saturation at higher gain levels
+            this.phaserSaturation.curve = this.makeHarmonicSaturationCurve();
+        }
+    }
+
+    update3DPanner() {
+        // Update panner speeds
+        this.pannerLfoX.frequency.value = this.pannerSpeed;
+        this.pannerLfoY.frequency.value = this.pannerSpeed * 0.7;
+        
+        // Update axis depths
+        const xDepth = (this.pannerXDepth / 100) * 5; // Max 5 units
+        const yRange = (this.pannerYRange / 100) * 5; // Max 5 units
+        
+        this.pannerXGain.gain.value = xDepth;
+        this.pannerYGain.gain.value = yRange;
     }
     
     updateDelayMix() {
@@ -457,6 +660,86 @@ class GranularSampler {
         }
         
         this.ringModSource.connect(this.ringModNode.gain);
+    }
+
+    setupGrainAnimation() {
+        this.grainCanvas = document.getElementById('grainCanvas');
+        if (this.grainCanvas) {
+            this.grainCtx = this.grainCanvas.getContext('2d');
+            this.grainParticles = [];
+            this.animateGrains();
+        }
+    }
+
+    addGrainParticle(x) {
+        if (!this.grainCtx) return;
+        
+        const particle = {
+            x: x,
+            y: Math.random() * this.grainCanvas.height,
+            size: 2 + Math.random() * 4,
+            opacity: 0.8,
+            vx: (Math.random() - 0.5) * 2,
+            vy: -1 - Math.random() * 2,
+            life: 1.0,
+            decay: 0.02 + Math.random() * 0.02
+        };
+        
+        this.grainParticles.push(particle);
+        
+        // Limit particle count
+        if (this.grainParticles.length > 50) {
+            this.grainParticles.shift();
+        }
+    }
+
+    animateGrains() {
+        if (!this.grainCtx) return;
+        
+        // Clear canvas
+        this.grainCtx.clearRect(0, 0, this.grainCanvas.width, this.grainCanvas.height);
+        
+        // Update and draw particles
+        for (let i = this.grainParticles.length - 1; i >= 0; i--) {
+            const particle = this.grainParticles[i];
+            
+            // Update particle
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.life -= particle.decay;
+            particle.opacity = particle.life * 0.8;
+            
+            // Remove dead particles
+            if (particle.life <= 0) {
+                this.grainParticles.splice(i, 1);
+                continue;
+            }
+            
+            // Draw smoky vapor effect
+            this.grainCtx.save();
+            this.grainCtx.globalAlpha = particle.opacity;
+            this.grainCtx.fillStyle = '#00ff41';
+            this.grainCtx.shadowColor = '#00ff41';
+            this.grainCtx.shadowBlur = particle.size * 2;
+            
+            // Draw multiple overlapping circles for vapor effect
+            for (let j = 0; j < 3; j++) {
+                const offset = j * 2;
+                this.grainCtx.beginPath();
+                this.grainCtx.arc(
+                    particle.x + offset, 
+                    particle.y + offset, 
+                    particle.size * (1 + j * 0.3), 
+                    0, 
+                    Math.PI * 2
+                );
+                this.grainCtx.fill();
+            }
+            
+            this.grainCtx.restore();
+        }
+        
+        requestAnimationFrame(() => this.animateGrains());
     }
     setupEventListeners() {
         const dropZone = document.getElementById('dropZone');
@@ -509,6 +792,19 @@ class GranularSampler {
             document.getElementById('ringModNoise').classList.remove('active');
         });
         
+        // Grain shape buttons
+        const grainShapeButtons = document.querySelectorAll('.grain-shape-btn');
+        grainShapeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons
+                grainShapeButtons.forEach(b => b.classList.remove('active'));
+                // Add active class to clicked button
+                btn.classList.add('active');
+                // Update grain shape
+                this.grainShape = btn.dataset.shape;
+            });
+        });
+        
         // Controls
         this.setupSliderControls();
     }
@@ -527,10 +823,6 @@ class GranularSampler {
             windowScan: (val) => { 
                 this.windowScan = parseInt(val); 
                 document.getElementById('windowScanValue').textContent = val + '%'; 
-            },
-            envelopeTime: (val) => { 
-                this.envelopeTime = parseInt(val); 
-                document.getElementById('envelopeTimeValue').textContent = val + '%'; 
             },
             timeStretch: (val) => { 
                 this.timeStretch = parseFloat(val); 
@@ -613,21 +905,48 @@ class GranularSampler {
                 document.getElementById('ringModEnvSpeedValue').textContent = val + 'Hz';
             },
             
-            // T-Resonator
-            tResonance: (val) => { 
-                this.tResonance = parseInt(val);
-                this.updateTResonatorMix();
-                document.getElementById('tResonanceValue').textContent = val + '%';
+            // Spectral Freeze & Phaser
+            spectralFreeze: (val) => { 
+                this.spectralFreeze = parseInt(val);
+                this.updateSpectralFreeze();
+                document.getElementById('spectralFreezeValue').textContent = val + '%';
             },
-            tDamping: (val) => { 
-                this.tDamping = parseInt(val);
-                this.updateTResonatorMix();
-                document.getElementById('tDampingValue').textContent = val + '%';
+            phaserRate: (val) => { 
+                this.phaserRate = parseFloat(val);
+                this.updatePhaser();
+                document.getElementById('phaserRateValue').textContent = val + 'Hz';
             },
-            tMix: (val) => { 
-                this.tMix = parseInt(val);
-                this.updateTResonatorMix();
-                document.getElementById('tMixValue').textContent = val + '%';
+            phaserDepth: (val) => { 
+                this.phaserDepth = parseInt(val);
+                this.updatePhaser();
+                document.getElementById('phaserDepthValue').textContent = val + '%';
+            },
+            phaserFeedback: (val) => { 
+                this.phaserFeedback = parseInt(val);
+                this.updatePhaser();
+                document.getElementById('phaserFeedbackValue').textContent = val + '%';
+            },
+            phaserGain: (val) => { 
+                this.phaserGain = parseFloat(val);
+                this.updatePhaser();
+                document.getElementById('phaserGainValue').textContent = val;
+            },
+            
+            // 3D Panner
+            pannerXDepth: (val) => { 
+                this.pannerXDepth = parseInt(val);
+                this.update3DPanner();
+                document.getElementById('pannerXDepthValue').textContent = val + '%';
+            },
+            pannerYRange: (val) => { 
+                this.pannerYRange = parseInt(val);
+                this.update3DPanner();
+                document.getElementById('pannerYRangeValue').textContent = val + '%';
+            },
+            pannerSpeed: (val) => { 
+                this.pannerSpeed = parseFloat(val);
+                this.update3DPanner();
+                document.getElementById('pannerSpeedValue').textContent = val + 'Hz';
             },
             
             // Volume
@@ -637,7 +956,7 @@ class GranularSampler {
                 document.getElementById('volumeValue').textContent = Math.round(val * 100) + '%';
             },
             
-            // Delay
+            // Delay (removed time stretch)
             delayTime: (val) => { 
                 this.delayTime = parseFloat(val); 
                 this.delayNode.delayTime.value = this.delayTime;
@@ -652,10 +971,6 @@ class GranularSampler {
                 this.delaySoftClip = parseInt(val) / 100;
                 this.delaySoftClipNode.curve = this.makeSoftClipCurve(this.delaySoftClip);
                 document.getElementById('delaySoftClipValue').textContent = val + '%';
-            },
-            delayStretch: (val) => { 
-                this.delayStretch = parseFloat(val);
-                document.getElementById('delayStretchValue').textContent = val + 'x';
             },
             delayMix: (val) => { 
                 this.delayMix = parseFloat(val); 
@@ -677,135 +992,54 @@ class GranularSampler {
             reverbPreDelay: (val) => { 
                 this.reverbPreDelay = parseInt(val) / 1000;
                 this.reverbPreDelayNode.delayTime.value = this.reverbPreDelay;
-                document.getElementById('reverbPreDelayValue').textContent = val + '%';},
-                reverbWetGain: (val) => { 
-                    this.reverbWetGain = parseFloat(val);
-                    this.reverbWetGainNode.gain.value = val;
-                    document.getElementById('reverbWetGainValue').textContent = val;},
-              
-                reverbMix: (val) => { 
-                    this.reverbMix = parseInt(val);
-                    this.updateReverbMix();
-                    document.getElementById('reverbMixValue').textContent = val + '%';
-                }
-            };
-            
-            // Add event listeners
-            Object.keys(sliders).forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('input', (e) => {
-                        sliders[id](e.target.value);
-                    });
-                }
-            });
-            
-            // LFO shape select
-            document.getElementById('lfoShape').addEventListener('change', (e) => {
-                this.lfoShape = e.target.value;
-                this.updateLFO();
-            });
-        }
+                document.getElementById('reverbPreDelayValue').textContent = val + 'ms';
+            },
+            reverbWetGain: (val) => { 
+                this.reverbWetGain = parseFloat(val);
+                this.reverbWetGainNode.gain.value = val;
+                document.getElementById('reverbWetGainValue').textContent = val;
+            },
+            reverbMix: (val) => { 
+                this.reverbMix = parseInt(val);
+                this.updateReverbMix();
+                document.getElementById('reverbMixValue').textContent = val + '%';
+            }
+        };
         
-        setupKeyboardControls() {
-            // Chromatic pitch mapping
-            const chromaticKeys = {
-                'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
-                'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
-                'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
-            };
-            
-            document.addEventListener('keydown', (e) => {
-                const key = e.key.toLowerCase();
-                
-                // Resume audio context on first interaction (iOS requirement)
-                this.resumeAudioContext();
-                
-                // Spacebar - play/stop
-                if (key === ' ') {
-                    e.preventDefault();
-                    this.togglePlayback();
-                    return;
-                }
-                
-                // Number keys - scan position
-                if (key >= '0' && key <= '9') {
-                    const position = key === '0' ? 0 : parseInt(key) / 9;
-                    this.setScanPosition(position);
-                    return;
-                }
-                
-                // Chromatic keys - pitch
-                if (chromaticKeys.hasOwnProperty(key)) {
-                    const semitones = chromaticKeys[key];
-                    this.activePitchKeys.add(key);
-                    this.updateCurrentPitch();
-                }
-            });
-            
-            document.addEventListener('keyup', (e) => {
-                const key = e.key.toLowerCase();
-                const chromaticKeys = {
-                    'q': true, 'w': true, 'e': true, 'r': true, 't': true, 'y': true, 'u': true, 'i': true, 'o': true, 'p': true,
-                    'a': true, 's': true, 'd': true, 'f': true, 'g': true, 'h': true, 'j': true, 'k': true, 'l': true,
-                    'z': true, 'x': true, 'c': true, 'v': true, 'b': true, 'n': true, 'm': true
-                };
-                
-                if (chromaticKeys[key]) {
-                    this.activePitchKeys.delete(key);
-                    this.updateCurrentPitch();
-                }
-            });
-        }
+        // Add event listeners
+        Object.keys(sliders).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', (e) => {
+                    sliders[id](e.target.value);
+                });
+            }
+        });
         
-        setupMobileKeyboard() {
-            const chromaticKeys = {
-                'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
-                'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
-                'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
-            };
-            
-            const keyButtons = document.querySelectorAll('.key-btn');
-            
-            keyButtons.forEach(btn => {
-                const key = btn.dataset.key;
-                
-                // Touch events for mobile
-                btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.handleKeyDown(key);
-                    btn.classList.add('active');
-                });
-                
-                btn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    this.handleKeyUp(key);
-                    btn.classList.remove('active');
-                });
-                
-                // Mouse events for desktop
-                btn.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    this.handleKeyDown(key);
-                    btn.classList.add('active');
-                });
-                
-                btn.addEventListener('mouseup', (e) => {
-                    e.preventDefault();
-                    this.handleKeyUp(key);
-                    btn.classList.remove('active');
-                });
-                
-                btn.addEventListener('mouseleave', (e) => {
-                    this.handleKeyUp(key);
-                    btn.classList.remove('active');
-                });
-            });
-        }
+        // LFO shape select
+        document.getElementById('lfoShape').addEventListener('change', (e) => {
+            this.lfoShape = e.target.value;
+            this.updateLFO();
+        });
+    }
+    
+    setupKeyboardControls() {
+        // Chromatic pitch mapping
+        const chromaticKeys = {
+            'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
+            'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
+            'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
+        };
         
-        handleKeyDown(key) {
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            
+            // Resume audio context on first interaction (iOS requirement)
+            this.resumeAudioContext();
+            
             // Spacebar - play/stop
             if (key === ' ') {
+                e.preventDefault();
                 this.togglePlayback();
                 return;
             }
@@ -817,20 +1051,29 @@ class GranularSampler {
                 return;
             }
             
-            // Chromatic keys - pitch
-            const chromaticKeys = {
-                'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
-                'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
-                'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
-            };
+            // Arrow keys - fine navigation
+            if (key === 'arrowleft') {
+                e.preventDefault();
+                this.fineScanBackward();
+                return;
+            }
             
+            if (key === 'arrowright') {
+                e.preventDefault();
+                this.fineScanForward();
+                return;
+            }
+            
+            // Chromatic keys - pitch
             if (chromaticKeys.hasOwnProperty(key)) {
+                const semitones = chromaticKeys[key];
                 this.activePitchKeys.add(key);
                 this.updateCurrentPitch();
             }
-        }
+        });
         
-        handleKeyUp(key) {
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
             const chromaticKeys = {
                 'q': true, 'w': true, 'e': true, 'r': true, 't': true, 'y': true, 'u': true, 'i': true, 'o': true, 'p': true,
                 'a': true, 's': true, 'd': true, 'f': true, 'g': true, 'h': true, 'j': true, 'k': true, 'l': true,
@@ -841,373 +1084,547 @@ class GranularSampler {
                 this.activePitchKeys.delete(key);
                 this.updateCurrentPitch();
             }
-        }
+        });
+    }
+    
+    setupMobileKeyboard() {
+        const chromaticKeys = {
+            'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
+            'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
+            'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
+        };
         
-        updateCurrentPitch() {
-            if (this.activePitchKeys.size === 0) {
-                this.currentPitch = 1.0;
-                return;
-            }
-            
-            const chromaticKeys = {
-                'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
-                'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
-                'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
-            };
-            
-            // Use the highest pitch if multiple keys are pressed
-            let highestSemitone = -999;
-            for (const key of this.activePitchKeys) {
-                if (chromaticKeys[key] > highestSemitone) {
-                    highestSemitone = chromaticKeys[key];
-                }
-            }
-            
-            this.currentPitch = Math.pow(2, highestSemitone / 12);
-        }
+        const keyButtons = document.querySelectorAll('.key-btn');
         
-        async loadAudioFile(file) {
-            document.getElementById('status').textContent = 'Loading audio file...';
+        keyButtons.forEach(btn => {
+            const key = btn.dataset.key;
             
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-                
-                document.getElementById('status').textContent = 
-                    `Loaded: ${file.name} (${this.audioBuffer.duration.toFixed(2)}s)`;
-                
-                this.drawWaveform();
-                document.getElementById('waveformContainer').style.display = 'block';
-                document.getElementById('controls').style.display = 'grid';
-                document.getElementById('mobileKeyboard').style.display = 'block';
-                
-            } catch (error) {
-                document.getElementById('status').textContent = 'Error loading audio file: ' + error.message;
-            }
-        }
-        
-        drawWaveform() {
-            if (!this.audioBuffer) {
-                console.error('No audio buffer to draw');
-                return;
-            }
-            
-            const canvas = document.getElementById('waveform');
-            const ctx = canvas.getContext('2d');
-            
-            // Wait for next frame to ensure container is sized
-            requestAnimationFrame(() => {
-                const rect = canvas.getBoundingClientRect();
-                const width = rect.width;
-                const height = rect.height;
-                
-                // Set canvas size
-                canvas.width = width;
-                canvas.height = height;
-                
-                // Clear canvas
-                ctx.fillStyle = 'transparent';
-                ctx.fillRect(0, 0, width, height);
-                
-                // Get audio data
-                const data = this.audioBuffer.getChannelData(0);
-                const step = Math.ceil(data.length / width);
-                
-                console.log('Drawing waveform:', {
-                    bufferLength: data.length,
-                    canvasWidth: width,
-                    canvasHeight: height,
-                    step: step
-                });
-                
-                // Draw waveform with phosphor green
-                ctx.strokeStyle = '#00ff41';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                
-                for (let i = 0; i < width; i++) {
-                    let min = 1.0;
-                    let max = -1.0;
-                    
-                    // Find min and max in this chunk
-                    for (let j = 0; j < step; j++) {
-                        const idx = (i * step) + j;
-                        if (idx < data.length) {
-                            const sample = data[idx];
-                            if (sample < min) min = sample;
-                            if (sample > max) max = sample;
-                        }
-                    }
-                    
-                    // Convert to canvas coordinates
-                    const yMin = (1 + min) * height / 2;
-                    const yMax = (1 + max) * height / 2;
-                    
-                    if (i === 0) {
-                        ctx.moveTo(i, yMin);
-                    } else {
-                        ctx.lineTo(i, yMin);
-                    }
-                    ctx.lineTo(i, yMax);
-                }
-                
-                ctx.stroke();
-                
-                // Add phosphor glow effect
-                ctx.shadowColor = '#00ff41';
-                ctx.shadowBlur = 3;
-                ctx.stroke();
-                
-                console.log('Waveform drawn successfully');
+            // Touch events for mobile
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.handleKeyDown(key);
+                btn.classList.add('active');
             });
-        }
-        
-        setScanPosition(position) {
-            if (!this.audioBuffer) return;
             
-            this.scanPosition = position;
-            this.loopPosition = position * this.audioBuffer.duration;
-            
-            // Update playhead visual
-            const playhead = document.getElementById('playhead');
-            playhead.style.left = (position * 100) + '%';
-            
-            document.getElementById('loopPos').textContent = this.loopPosition.toFixed(2) + 's';
-        }
-        async togglePlayback() {
-            if (!this.audioBuffer) return;
-            
-            // Resume audio context on first interaction (iOS requirement)
-            await this.resumeAudioContext();
-            
-            if (this.isPlaying) {
-                this.stopPlayback();
-            } else {
-                await this.startPlayback();
-            }
-        }
-        
-        async startPlayback() {
-            if (!this.audioBuffer || this.isPlaying) return;
-            
-            // Make sure audio context is running
-            await this.resumeAudioContext();
-            
-            console.log('Starting playback, audio context state:', this.audioContext.state);
-            
-            this.isPlaying = true;
-            document.getElementById('playingStatus').textContent = 'Playing';
-            document.getElementById('playButton').textContent = '⏸ STOP';
-            document.getElementById('playButton').classList.add('playing');
-            
-            // Start grain generation
-            this.scheduleGrains();
-        }
-        
-        stopPlayback() {
-            this.isPlaying = false;
-            document.getElementById('playingStatus').textContent = 'Stopped';
-            document.getElementById('playButton').textContent = '▶ PLAY';
-            document.getElementById('playButton').classList.remove('playing');
-            
-            // Stop all grains
-            this.grains.forEach(grain => {
-                if (grain.source) {
-                    grain.source.stop();
-                }
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.handleKeyUp(key);
+                btn.classList.remove('active');
             });
-            this.grains = [];
-            document.getElementById('activeGrains').textContent = '0';
+            
+            // Mouse events for desktop
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                this.handleKeyDown(key);
+                btn.classList.add('active');
+            });
+            
+            btn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                this.handleKeyUp(key);
+                btn.classList.remove('active');
+            });
+            
+            btn.addEventListener('mouseleave', (e) => {
+                this.handleKeyUp(key);
+                btn.classList.remove('active');
+            });
+        });
+    }
+    
+    handleKeyDown(key) {
+        // Spacebar - play/stop
+        if (key === ' ') {
+            this.togglePlayback();
+            return;
         }
         
-        scheduleGrains() {
-            if (!this.isPlaying) return;
-            
-            // Generate grains based on density
-            for (let i = 0; i < this.density; i++) {
-                const delay = (i / this.density) * (this.grainSize / 1000);
-                setTimeout(() => {
-                    if (this.isPlaying) this.createGrain();
-                }, delay * 1000);
-            }
-            
-            // Schedule next batch with time stretch
-            const nextScheduleTime = this.grainSize / this.timeStretch;
-            setTimeout(() => {
-                if (this.isPlaying) this.scheduleGrains();
-            }, nextScheduleTime);
+        // Number keys - scan position
+        if (key >= '0' && key <= '9') {
+            const position = key === '0' ? 0 : parseInt(key) / 9;
+            this.setScanPosition(position);
+            return;
         }
         
-        createGrain() {
-            if (!this.audioBuffer) return;
-            
-            console.log('Creating grain, audio context state:', this.audioContext.state);
-            
-            const source = this.audioContext.createBufferSource();
-            const gainNode = this.audioContext.createGain();
-            
-            source.buffer = this.audioBuffer;
-            source.playbackRate.value = this.currentPitch;
-            
-            // Apply window scan randomization
-            const scanRange = (this.windowScan / 100) * this.audioBuffer.duration;
-            const randomOffset = (Math.random() - 0.5) * scanRange;
-            let startTime = this.looperEnabled ? this.loopPosition : this.playheadPosition;
-            startTime += randomOffset;
-            startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
-            
-            // Grain envelope (variable attack/decay based on envelope setting)
-            const grainDuration = this.grainSize / 1000;
-            const now = this.audioContext.currentTime;
-            
-            // Calculate envelope times: 0% = 1ms attack/decay, 100% = 50% of grain duration
-            const minEnvTime = 0.001; // 1ms minimum
-            const maxEnvTime = grainDuration * 0.5; // 50% of grain duration maximum
-            const envTime = minEnvTime + (this.envelopeTime / 100) * (maxEnvTime - minEnvTime);
-            
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.3, now + envTime); // Attack
-            gainNode.gain.setValueAtTime(0.3, now + grainDuration - envTime); // Sustain
-            gainNode.gain.linearRampToValueAtTime(0, now + grainDuration); // Decay
-            
-            // Connect: source -> gain -> filter
-            source.connect(gainNode);
-            gainNode.connect(this.filterNode);
-            
-            try {
-                source.start(now, startTime, grainDuration);
-                source.stop(now + grainDuration);
-                console.log('Grain started successfully');
-            } catch (error) {
-                console.error('Error starting grain:', error);
-            }
-            
-            // Track grain
-            const grain = { source, startTime: now, duration: grainDuration };
-            this.grains.push(grain);
-            
-            // Clean up finished grains
-            source.onended = () => {
-                const index = this.grains.indexOf(grain);
-                if (index > -1) this.grains.splice(index, 1);
-            };
-            
-            // Update display
-            document.getElementById('activeGrains').textContent = this.grains.length;
-            
-            // Update playhead position if not looping
-            if (!this.looperEnabled) {
-                this.playheadPosition += (grainDuration / 4) * this.timeStretch;
-                if (this.playheadPosition >= this.audioBuffer.duration) {
-                    this.playheadPosition = 0;
-                }
-                document.getElementById('currentPos').textContent = this.playheadPosition.toFixed(2) + 's';
-                
-                // Update visual playhead
-                const playheadPercent = (this.playheadPosition / this.audioBuffer.duration) * 100;
-                document.getElementById('playhead').style.left = playheadPercent + '%';
-            }
+        // Arrow keys - fine navigation
+        if (key === 'ArrowLeft') {
+            this.fineScanBackward();
+            return;
         }
         
-        // Recording functions
-        async startRecording() {
-            try {
-                const stream = this.recordingDestination.stream;
-                const options = {
-                    mimeType: 'audio/webm;codecs=opus'
-                };
-                
-                // Check if the mimeType is supported
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    // Fallback options
-                    if (MediaRecorder.isTypeSupported('audio/webm')) {
-                        options.mimeType = 'audio/webm';
-                    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                        options.mimeType = 'audio/mp4';
-                    } else {
-                        options.mimeType = ''; // Let browser choose
-                    }
-                }
-                
-                this.mediaRecorder = new MediaRecorder(stream, options);
-                this.recordedChunks = [];
-                
-                this.mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        this.recordedChunks.push(event.data);
-                    }
-                };
-                
-                this.mediaRecorder.onstop = () => {
-                    this.saveRecording();
-                };
-                
-                this.mediaRecorder.start();
-                this.isRecording = true;
-                
-                // Update UI
-                const recordButton = document.getElementById('recordButton');
-                recordButton.textContent = '⏹ STOP';
-                recordButton.classList.add('recording');
-                
-                console.log('Recording started');
-            } catch (error) {
-                console.error('Error starting recording:', error);
-                alert('Error starting recording: ' + error.message);
-            }
+        if (key === 'ArrowRight') {
+            this.fineScanForward();
+            return;
         }
         
-        stopRecording() {
-            if (this.mediaRecorder && this.isRecording) {
-                this.mediaRecorder.stop();
-                this.isRecording = false;
-                
-                // Update UI
-                const recordButton = document.getElementById('recordButton');
-                recordButton.textContent = '⬤ REC';
-                recordButton.classList.remove('recording');
-                
-                console.log('Recording stopped');
-            }
-        }
+        // Chromatic keys - pitch
+        const chromaticKeys = {
+            'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
+            'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
+            'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
+        };
         
-        toggleRecording() {
-            if (this.isRecording) {
-                this.stopRecording();
-            } else {
-                this.startRecording();
-            }
-        }
-        
-        saveRecording() {
-            const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            
-            // Create filename with timestamp
-            const now = new Date();
-            const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            a.download = `grains_${timestamp}.webm`;
-            
-            a.href = url;
-            a.click();
-            
-            // Clean up
-            URL.revokeObjectURL(url);
-            this.recordedChunks = [];
-            
-            // Visual feedback
-            const recordButton = document.getElementById('recordButton');
-            recordButton.textContent = '✅ SAVED';
-            setTimeout(() => {
-                recordButton.textContent = '⬤ REC';
-            }, 2000);
-            
-            console.log('Recording saved');
+        if (chromaticKeys.hasOwnProperty(key)) {
+            this.activePitchKeys.add(key);
+            this.updateCurrentPitch();
         }
     }
     
-    // Initialize the sampler when page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        window.granularSampler = new GranularSampler();
+    handleKeyUp(key) {
+        const chromaticKeys = {
+            'q': true, 'w': true, 'e': true, 'r': true, 't': true, 'y': true, 'u': true, 'i': true, 'o': true, 'p': true,
+            'a': true, 's': true, 'd': true, 'f': true, 'g': true, 'h': true, 'j': true, 'k': true, 'l': true,
+            'z': true, 'x': true, 'c': true, 'v': true, 'b': true, 'n': true, 'm': true
+        };
+        
+        if (chromaticKeys[key]) {
+            this.activePitchKeys.delete(key);
+            this.updateCurrentPitch();
+        }
+    }
+    updateCurrentPitch() {
+        if (this.activePitchKeys.size === 0) {
+            this.currentPitch = 1.0;
+            return;
+        }
+        
+        const chromaticKeys = {
+            'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
+            'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
+            'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
+        };
+        
+        // Use the highest pitch if multiple keys are pressed
+        let highestSemitone = -999;
+        for (const key of this.activePitchKeys) {
+            if (chromaticKeys[key] > highestSemitone) {
+                highestSemitone = chromaticKeys[key];
+            }
+        }
+        
+        this.currentPitch = Math.pow(2, highestSemitone / 12);
+    }
+    
+    async loadAudioFile(file) {
+        document.getElementById('status').textContent = 'Loading audio file...';
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            
+            document.getElementById('status').textContent = 
+                `Loaded: ${file.name} (${this.audioBuffer.duration.toFixed(2)}s)`;
+            
+            this.drawWaveform();
+            document.getElementById('waveformContainer').style.display = 'block';
+            document.getElementById('controls').style.display = 'grid';
+            document.getElementById('mobileKeyboard').style.display = 'block';
+            
+            // Resize grain canvas
+            this.resizeGrainCanvas();
+            
+        } catch (error) {
+            document.getElementById('status').textContent = 'Error loading audio file: ' + error.message;
+        }
+    }
+
+    resizeGrainCanvas() {
+        if (this.grainCanvas) {
+            const rect = document.getElementById('waveform').getBoundingClientRect();
+            this.grainCanvas.width = rect.width;
+            this.grainCanvas.height = rect.height;
+        }
+    }
+    
+    drawWaveform() {
+        if (!this.audioBuffer) {
+            console.error('No audio buffer to draw');
+            return;
+        }
+        
+        const canvas = document.getElementById('waveform');
+        const ctx = canvas.getContext('2d');
+        
+        // Wait for next frame to ensure container is sized
+        requestAnimationFrame(() => {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            
+            // Set canvas size
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Resize grain canvas too
+            this.resizeGrainCanvas();
+            
+            // Clear canvas
+            ctx.fillStyle = 'transparent';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Get audio data
+            const data = this.audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / width);
+            
+            console.log('Drawing waveform:', {
+                bufferLength: data.length,
+                canvasWidth: width,
+                canvasHeight: height,
+                step: step
+            });
+            
+            // Draw waveform with phosphor green
+            ctx.strokeStyle = '#00ff41';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            
+            for (let i = 0; i < width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                
+                // Find min and max in this chunk
+                for (let j = 0; j < step; j++) {
+                    const idx = (i * step) + j;
+                    if (idx < data.length) {
+                        const sample = data[idx];
+                        if (sample < min) min = sample;
+                        if (sample > max) max = sample;
+                    }
+                }
+                
+                // Convert to canvas coordinates
+                const yMin = (1 + min) * height / 2;
+                const yMax = (1 + max) * height / 2;
+                
+                if (i === 0) {
+                    ctx.moveTo(i, yMin);
+                } else {
+                    ctx.lineTo(i, yMin);
+                }
+                ctx.lineTo(i, yMax);
+            }
+            
+            ctx.stroke();
+            
+            // Add phosphor glow effect
+            ctx.shadowColor = '#00ff41';
+            ctx.shadowBlur = 3;
+            ctx.stroke();
+            
+            console.log('Waveform drawn successfully');
+        });
+    }
+    
+    setScanPosition(position) {
+        if (!this.audioBuffer) return;
+        
+        this.scanPosition = position;
+        this.loopPosition = position * this.audioBuffer.duration;
+        
+        // Update playhead visual
+        const playhead = document.getElementById('playhead');
+        playhead.style.left = (position * 100) + '%';
+        
+        document.getElementById('loopPos').textContent = this.loopPosition.toFixed(2) + 's';
+    }
+
+    fineScanBackward() {
+        if (!this.audioBuffer) return;
+        
+        const fineIncrement = 0.01; // 1% increment
+        const newPosition = Math.max(0, this.scanPosition - fineIncrement);
+        this.setScanPosition(newPosition);
+    }
+
+    fineScanForward() {
+        if (!this.audioBuffer) return;
+        
+        const fineIncrement = 0.01; // 1% increment
+        const newPosition = Math.min(1, this.scanPosition + fineIncrement);
+        this.setScanPosition(newPosition);
+    }
+    
+    async togglePlayback() {
+        if (!this.audioBuffer) return;
+        
+        // Resume audio context on first interaction (iOS requirement)
+        await this.resumeAudioContext();
+        
+        if (this.isPlaying) {
+            this.stopPlayback();
+        } else {
+            await this.startPlayback();
+        }
+    }
+    
+    async startPlayback() {
+        if (!this.audioBuffer || this.isPlaying) return;
+        
+        // Make sure audio context is running
+        await this.resumeAudioContext();
+        
+        console.log('Starting playback, audio context state:', this.audioContext.state);
+        
+        this.isPlaying = true;
+        document.getElementById('playingStatus').textContent = 'Playing';
+        document.getElementById('playButton').textContent = '⏸ STOP';
+        document.getElementById('playButton').classList.add('playing');
+        
+        // Start grain generation
+        this.scheduleGrains();
+    }
+    
+    stopPlayback() {
+        this.isPlaying = false;
+        document.getElementById('playingStatus').textContent = 'Stopped';
+        document.getElementById('playButton').textContent = '▶ PLAY';
+        document.getElementById('playButton').classList.remove('playing');
+        
+        // Stop all grains
+        this.grains.forEach(grain => {
+            if (grain.source) {
+                grain.source.stop();
+            }
+        });
+        this.grains = [];
+        document.getElementById('activeGrains').textContent = '0';
+    }
+    
+    scheduleGrains() {
+        if (!this.isPlaying) return;
+        
+        // Generate grains based on density
+        for (let i = 0; i < this.density; i++) {
+            const delay = (i / this.density) * (this.grainSize / 1000);
+            setTimeout(() => {
+                if (this.isPlaying) this.createGrain();
+            }, delay * 1000);
+        }
+        
+        // Schedule next batch with time stretch
+        const nextScheduleTime = this.grainSize / this.timeStretch;
+        setTimeout(() => {
+            if (this.isPlaying) this.scheduleGrains();
+        }, nextScheduleTime);
+    }
+    
+    createGrain() {
+        if (!this.audioBuffer) return;
+        
+        console.log('Creating grain, audio context state:', this.audioContext.state);
+        
+        const source = this.audioContext.createBufferSource();
+        const gainNode = this.audioContext.createGain();
+        
+        source.buffer = this.audioBuffer;
+        source.playbackRate.value = this.currentPitch;
+        
+        // Apply window scan randomization
+        const scanRange = (this.windowScan / 100) * this.audioBuffer.duration;
+        const randomOffset = (Math.random() - 0.5) * scanRange;
+        let startTime = this.looperEnabled ? this.loopPosition : this.playheadPosition;
+        startTime += randomOffset;
+        startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
+        
+        // Grain envelope using selected shape
+        const grainDuration = this.grainSize / 1000;
+        const now = this.audioContext.currentTime;
+        
+        // Apply envelope shape
+        this.applyGrainEnvelope(gainNode, now, grainDuration, this.grainShape);
+        
+        // Connect: source -> gain -> filter
+        source.connect(gainNode);
+        gainNode.connect(this.filterNode);
+        
+        try {
+            source.start(now, startTime, grainDuration);
+            source.stop(now + grainDuration);
+            console.log('Grain started successfully');
+            
+            // Add grain particle animation
+            if (this.audioBuffer) {
+                const playheadPercent = (startTime / this.audioBuffer.duration);
+                const waveformCanvas = document.getElementById('waveform');
+                if (waveformCanvas) {
+                    const x = playheadPercent * waveformCanvas.width;
+                    this.addGrainParticle(x);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error starting grain:', error);
+        }
+        
+        // Track grain
+        const grain = { source, startTime: now, duration: grainDuration };
+        this.grains.push(grain);
+        
+        // Clean up finished grains
+        source.onended = () => {
+            const index = this.grains.indexOf(grain);
+            if (index > -1) this.grains.splice(index, 1);
+        };
+        
+        // Update display
+        document.getElementById('activeGrains').textContent = this.grains.length;
+        
+        // Update playhead position if not looping
+        if (!this.looperEnabled) {
+            this.playheadPosition += (grainDuration / 4) * this.timeStretch;
+            if (this.playheadPosition >= this.audioBuffer.duration) {
+                this.playheadPosition = 0;
+            }
+            document.getElementById('currentPos').textContent = this.playheadPosition.toFixed(2) + 's';
+            
+            // Update visual playhead
+            const playheadPercent = (this.playheadPosition / this.audioBuffer.duration) * 100;
+            document.getElementById('playhead').style.left = playheadPercent + '%';
+        }
+    }
+
+    applyGrainEnvelope(gainNode, startTime, duration, shape) {
+        const sampleRate = this.audioContext.sampleRate;
+        const samples = Math.floor(duration * sampleRate);
+        const envelope = this.getGrainEnvelope(shape, samples);
+        
+        // Apply envelope using gain automation
+        gainNode.gain.setValueAtTime(0, startTime);
+        
+        // Simple envelope application - start, peak, end
+        switch (shape) {
+            case 'blackman':
+            case 'hanning':
+                gainNode.gain.linearRampToValueAtTime(0.3, startTime + duration * 0.3);
+                gainNode.gain.setValueAtTime(0.3, startTime + duration * 0.7);
+                gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+                break;
+            case 'down-ramp':
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+                break;
+            case 'expodec':
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                break;
+            default:
+                gainNode.gain.linearRampToValueAtTime(0.3, startTime + duration * 0.3);
+                gainNode.gain.setValueAtTime(0.3, startTime + duration * 0.7);
+                gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+        }
+    }
+    // Recording functions
+    async startRecording() {
+        try {
+            const stream = this.recordingDestination.stream;
+            const options = {
+                mimeType: 'audio/webm;codecs=opus'
+            };
+            
+            // Check if the mimeType is supported
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                // Fallback options
+                if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    options.mimeType = 'audio/webm';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    options.mimeType = 'audio/mp4';
+                } else {
+                    options.mimeType = ''; // Let browser choose
+                }
+            }
+            
+            this.mediaRecorder = new MediaRecorder(stream, options);
+            this.recordedChunks = [];
+            
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.recordedChunks.push(event.data);
+                }
+            };
+            
+            this.mediaRecorder.onstop = () => {
+                this.saveRecording();
+            };
+            
+            this.mediaRecorder.start();
+            this.isRecording = true;
+            
+            // Update UI
+            const recordButton = document.getElementById('recordButton');
+            recordButton.textContent = '⏹ STOP';
+            recordButton.classList.add('recording');
+            
+            console.log('Recording started');
+        } catch (error) {
+            console.error('Error starting recording:', error);
+            alert('Error starting recording: ' + error.message);
+        }
+    }
+    
+    stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            
+            // Update UI
+            const recordButton = document.getElementById('recordButton');
+            recordButton.textContent = '⬤ REC';
+            recordButton.classList.remove('recording');
+            
+            console.log('Recording stopped');
+        }
+    }
+    
+    toggleRecording() {
+        if (this.isRecording) {
+            this.stopRecording();
+        } else {
+            this.startRecording();
+        }
+    }
+    
+    saveRecording() {
+        const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        // Create filename with timestamp
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        a.download = `grains_${timestamp}.webm`;
+        
+        a.href = url;
+        a.click();
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+        this.recordedChunks = [];
+        
+        // Visual feedback
+        const recordButton = document.getElementById('recordButton');
+        recordButton.textContent = '✅ SAVED';
+        setTimeout(() => {
+            recordButton.textContent = '⬤ REC';
+        }, 2000);
+        
+        console.log('Recording saved');
+    }
+}
+
+// Initialize the sampler when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    window.granularSampler = new GranularSampler();
+    
+    // Set default loop state
+    const looperToggle = document.getElementById('looperToggle');
+    if (looperToggle) {
+        looperToggle.classList.add('active');
+    }
+    
+    // Handle window resize for grain canvas
+    window.addEventListener('resize', () => {
+        if (window.granularSampler && window.granularSampler.grainCanvas) {
+            window.granularSampler.resizeGrainCanvas();
+        }
     });
+});
