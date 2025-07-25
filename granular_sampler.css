@@ -28,7 +28,7 @@
     --accent-success: #4caf50;
     
     /* CRT Display Colors */
-    --crt-green: #00ff41;
+    --crt-green: #299945;
     --crt-amber: #ffb000;
     --crt-screen: #0a0f0a;
     --crt-glass: rgba(0, 255, 65, 0.1);
@@ -418,7 +418,7 @@ body {
     background: linear-gradient(0deg, 
         transparent 0%,
         var(--crt-green) 10%,
-        #40ff70 50%,
+        #406854 50%,
         var(--crt-green) 90%,
         transparent 100%);
     box-shadow: 
@@ -897,7 +897,7 @@ button:active {
 }
 
 .record-button {
-    background: linear-gradient(135deg, var(--accent-danger) 0%, #d32f2f 100%);
+    background: linear-gradient(135deg, var(--accent-danger) 0%, #922323 100%);
     color: white;
     border-color: var(--accent-danger);
     font-weight: 600;
