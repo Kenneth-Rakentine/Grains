@@ -124,6 +124,44 @@ body {
     width: 120px;
 }
 
+/* Mute Button */
+.mute-button {
+    background: linear-gradient(135deg, var(--metal-light) 0%, var(--metal-medium) 100%);
+    color: var(--text-primary);
+    border: 1px solid var(--border-medium);
+    padding: 6px 10px;
+    font-size: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mute-button:hover {
+    background: linear-gradient(135deg, var(--metal-accent) 0%, var(--metal-light) 100%);
+    border-color: var(--accent-primary);
+}
+
+.mute-button.active {
+    background: linear-gradient(135deg, var(--accent-danger) 0%, #d32f2f 100%);
+    color: white;
+    border-color: var(--accent-danger);
+}
+
+/* Reset Button */
+.reset-button {
+    background: linear-gradient(135deg, var(--accent-warning) 0%, #f57c00 100%);
+    color: white;
+    border-color: var(--accent-warning);
+    font-weight: 600;
+}
+
+.reset-button:hover {
+    background: linear-gradient(135deg, #ffcc80 0%, var(--accent-warning) 100%);
+    box-shadow: 
+        var(--shadow-medium),
+        0 0 12px rgba(255, 171, 64, 0.4);
+}
+
 /* Signal Path Diagram with Pulsing Glow */
 .signal-path-diagram {
     background: linear-gradient(135deg, var(--metal-dark) 0%, var(--bg-tertiary) 100%);
@@ -135,7 +173,7 @@ body {
 }
 
 .signal-flow {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--crt-green);
     text-align: center;
     letter-spacing: 1px;
@@ -436,7 +474,6 @@ body {
         0 0 6px var(--crt-green),
         inset 0 1px 2px rgba(255,255,255,0.3);
 }
-
 /* Controls Grid */
 .controls-grid {
     display: grid;
@@ -513,6 +550,173 @@ body {
 .status-item span {
     color: var(--text-primary);
     font-weight: 600;
+}
+
+/* Vocoder Styles */
+.vocoder-bands {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.vocoder-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.vocoder-band label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.vocoder-band label span {
+    font-weight: 600;
+    color: var(--accent-primary);
+    font-size: 8px;
+    display: block;
+}
+
+.vocoder-slider {
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    width: 20px;
+    height: 60px;
+    background: linear-gradient(to top, var(--metal-dark) 0%, var(--bg-tertiary) 100%);
+    outline: none;
+    border: 1px solid var(--border-dark);
+    border-radius: 2px;
+}
+
+.vocoder-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    border: 1px solid var(--border-light);
+    cursor: pointer;
+    box-shadow: var(--shadow-light);
+}
+
+.vocoder-slider::-webkit-slider-thumb:hover {
+    background: linear-gradient(135deg, #5aa8ff 0%, #4a98ef 100%);
+    box-shadow: 
+        var(--shadow-medium),
+        0 0 8px rgba(74, 158, 255, 0.4);
+}
+
+/* String Sequencer Styles */
+.string-seq-toggle {
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.seq-toggle-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--metal-light) 0%, var(--metal-medium) 100%);
+    color: var(--text-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.seq-toggle-btn:hover {
+    background: linear-gradient(135deg, var(--metal-accent) 0%, var(--metal-light) 100%);
+    border-color: var(--accent-primary);
+}
+
+.seq-toggle-btn.active {
+    background: linear-gradient(135deg, var(--accent-success) 0%, #45a049 100%);
+    color: white;
+    border-color: var(--accent-success);
+    box-shadow: 
+        var(--shadow-medium),
+        0 0 12px rgba(76, 175, 80, 0.4);
+}
+
+.string-seq-wave {
+    margin-bottom: 12px;
+    border: 1px solid var(--border-dark);
+    border-radius: 4px;
+    background: var(--crt-screen);
+    padding: 4px;
+    box-shadow: var(--shadow-inset);
+}
+
+#stringSeqWave {
+    width: 100%;
+    height: 40px;
+    background: transparent;
+    border-radius: 2px;
+}
+
+.seq-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.seq-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.seq-step label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.seq-step label span {
+    font-weight: 600;
+    color: var(--accent-primary);
+    font-size: 8px;
+    display: block;
+}
+
+.seq-step-slider {
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    width: 16px;
+    height: 50px;
+    background: linear-gradient(to top, var(--metal-dark) 0%, var(--bg-tertiary) 100%);
+    outline: none;
+    border: 1px solid var(--border-dark);
+    border-radius: 2px;
+}
+
+.seq-step-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 6px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, var(--crt-green) 0%, #00cc33 100%);
+    border: 1px solid var(--border-light);
+    cursor: pointer;
+    box-shadow: var(--shadow-light);
+}
+
+.seq-step-slider::-webkit-slider-thumb:hover {
+    background: linear-gradient(135deg, #40ff70 0%, var(--crt-green) 100%);
+    box-shadow: 
+        var(--shadow-medium),
+        0 0 8px rgba(0, 255, 65, 0.4);
 }
 
 /* Slider Styles */
@@ -895,6 +1099,16 @@ button:active {
         gap: 12px;
     }
     
+    .transport-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .master-volume-control {
+        flex-direction: column;
+        text-align: center;
+    }
+    
     .status-display {
         grid-template-columns: 1fr;
     }
@@ -909,6 +1123,30 @@ button:active {
     
     .mobile-keyboard {
         display: block !important;
+    }
+    
+    .vocoder-bands {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+    }
+    
+    .vocoder-slider {
+        height: 40px;
+        width: 16px;
+    }
+    
+    .seq-steps {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+    
+    .seq-step-slider {
+        height: 35px;
+        width: 12px;
+    }
+    
+    .signal-flow {
+        font-size: 8px;
     }
 }
 
@@ -927,6 +1165,21 @@ button:active {
     
     .instruction-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .vocoder-bands {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .seq-steps {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    
+    .transport-controls {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
     }
 }
 
@@ -962,4 +1215,88 @@ input[type="range"]:hover::-webkit-slider-thumb {
     box-shadow: 
         var(--shadow-medium),
         0 0 8px var(--crt-green);
+}
+
+/* Volume boost indicator */
+.volume-boost-indicator {
+    position: relative;
+}
+
+.volume-boost-indicator::after {
+    content: '⚡';
+    position: absolute;
+    right: -15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--accent-warning);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.volume-boost-indicator.boosted::after {
+    opacity: 1;
+    animation: boost-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes boost-pulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Special highlighting for new features */
+.new-feature {
+    position: relative;
+}
+
+.new-feature::before {
+    content: 'NEW';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--accent-warning);
+    color: var(--metal-dark);
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 4px;
+    border-radius: 2px;
+    z-index: 10;
+}
+
+/* Frequency shifter specific styles */
+.freq-shifter-controls {
+    background: linear-gradient(135deg, var(--metal-medium) 0%, var(--metal-dark) 100%);
+    border: 1px solid var(--border-dark);
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 8px;
+}
+
+/* String sequencer wave canvas styling */
+.string-seq-wave canvas {
+    filter: drop-shadow(0 0 4px var(--crt-green));
+}
+
+/* Enhanced vocoder visual feedback */
+.vocoder-band:hover .vocoder-slider {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
+}
+
+.vocoder-band.active {
+    background: rgba(74, 158, 255, 0.1);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+/* Sequencer step highlighting */
+.seq-step.active {
+    background: rgba(0, 255, 65, 0.1);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.seq-step.active .seq-step-slider {
+    border-color: var(--crt-green);
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
 }

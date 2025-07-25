@@ -58,8 +58,10 @@
                 <button class="play-button" id="playButton">▶ PLAY</button>
                 <button class="record-button" id="recordButton">⬤ REC</button>
                 <button class="loop-button active" id="looperToggle">↻ LOOP</button>
+                <button class="reset-button" id="resetButton">⟲ RESET</button>
             </div>
             <div class="master-volume-control">
+                <button class="mute-button" id="muteButton">🔊 MUTE</button>
                 <label>MASTER VOL: <span id="volumeValue">70%</span></label>
                 <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
             </div>
@@ -68,7 +70,7 @@
         <!-- Signal Path Diagram -->
         <div class="signal-path-diagram">
             <div class="signal-flow">
-                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">FORMANTS</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">OUTPUT</span>
+                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">VOCODER</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">FREQ SHIFTER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">STRING SEQ</span> → <span class="process-module">OUTPUT</span>
             </div>
         </div>
         
@@ -230,37 +232,47 @@
                 </div>
             </div>
 
-            <!-- Formant Filter Bank -->
+            <!-- 8-Band Vocoder -->
             <div class="control-panel">
-                <h3>Formant Filter Bank</h3>
+                <h3>8-Band Vocoder</h3>
                 <div class="slider-group">
-                    <div class="slider-item compact">
-                        <label>F1 <span id="formant1Value">400Hz</span></label>
-                        <input type="range" id="formant1" min="200" max="1000" value="400">
+                    <div class="vocoder-bands">
+                        <div class="vocoder-band">
+                            <label>200Hz <span id="vocoder1Value">1.0</span></label>
+                            <input type="range" id="vocoder1" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>400Hz <span id="vocoder2Value">1.0</span></label>
+                            <input type="range" id="vocoder2" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>800Hz <span id="vocoder3Value">1.0</span></label>
+                            <input type="range" id="vocoder3" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>1.2kHz <span id="vocoder4Value">1.0</span></label>
+                            <input type="range" id="vocoder4" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>1.6kHz <span id="vocoder5Value">1.0</span></label>
+                            <input type="range" id="vocoder5" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>2.4kHz <span id="vocoder6Value">1.0</span></label>
+                            <input type="range" id="vocoder6" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>3.2kHz <span id="vocoder7Value">1.0</span></label>
+                            <input type="range" id="vocoder7" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
+                        <div class="vocoder-band">
+                            <label>4.8kHz <span id="vocoder8Value">1.0</span></label>
+                            <input type="range" id="vocoder8" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                        </div>
                     </div>
                     <div class="slider-item compact">
-                        <label>F2 <span id="formant2Value">800Hz</span></label>
-                        <input type="range" id="formant2" min="500" max="2000" value="800">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>F3 <span id="formant3Value">1200Hz</span></label>
-                        <input type="range" id="formant3" min="1000" max="3000" value="1200">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>F4 <span id="formant4Value">2400Hz</span></label>
-                        <input type="range" id="formant4" min="2000" max="4000" value="2400">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>F5 <span id="formant5Value">3200Hz</span></label>
-                        <input type="range" id="formant5" min="2500" max="5000" value="3200">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Formant Gain <span id="formantGainValue">1.0</span></label>
-                        <input type="range" id="formantGain" min="0" max="2" value="1" step="0.01">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Formant Mix <span id="formantMixValue">0%</span></label>
-                        <input type="range" id="formantMix" min="0" max="100" value="0">
+                        <label>Vocoder Mix <span id="vocoderMixValue">0%</span></label>
+                        <input type="range" id="vocoderMix" min="0" max="100" value="0">
                     </div>
                 </div>
             </div>
@@ -318,21 +330,31 @@
                 </div>
             </div>
 
-            <!-- 3D Panner -->
+            <!-- 3D Panner & Frequency Shifter -->
             <div class="control-panel">
-                <h3>Binaural 3D Panner</h3>
+                <h3>3D Panner & Freq Shifter</h3>
                 <div class="slider-group">
+                    <div class="section-label">Binaural 3D Panner</div>
                     <div class="slider-item compact">
-                        <label>X-Axis Depth <span id="pannerXDepthValue">50%</span></label>
-                        <input type="range" id="pannerXDepth" min="0" max="100" value="50">
+                        <label>X-Axis Depth <span id="pannerXDepthValue">0%</span></label>
+                        <input type="range" id="pannerXDepth" min="0" max="100" value="0">
                     </div>
                     <div class="slider-item compact">
-                        <label>Y-Axis Range <span id="pannerYRangeValue">50%</span></label>
-                        <input type="range" id="pannerYRange" min="0" max="100" value="50">
+                        <label>Y-Axis Range <span id="pannerYRangeValue">0%</span></label>
+                        <input type="range" id="pannerYRange" min="0" max="100" value="0">
                     </div>
                     <div class="slider-item compact">
                         <label>Rotation Speed <span id="pannerSpeedValue">0.5Hz</span></label>
                         <input type="range" id="pannerSpeed" min="0" max="5" value="0.5" step="0.1">
+                    </div>
+                    <div class="section-label">Frequency Shifter</div>
+                    <div class="slider-item compact">
+                        <label>Shift <span id="freqShifterAmountValue">0Hz</span></label>
+                        <input type="range" id="freqShifterAmount" min="-5" max="5" value="0" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Mix <span id="freqShifterMixValue">0%</span></label>
+                        <input type="range" id="freqShifterMix" min="0" max="100" value="0">
                     </div>
                 </div>
             </div>
@@ -386,6 +408,54 @@
                     </div>
                 </div>
             </div>
+
+            <!-- String Sequencer -->
+            <div class="control-panel">
+                <h3>Paraphonic String Seq</h3>
+                <div class="slider-group">
+                    <div class="string-seq-toggle">
+                        <button class="seq-toggle-btn" id="stringSeqToggle">◼ OFF</button>
+                    </div>
+                    <div class="string-seq-wave">
+                        <canvas id="stringSeqWave" width="240" height="40"></canvas>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Speed <span id="stringSeqSpeedValue">4Hz</span></label>
+                        <input type="range" id="stringSeqSpeed" min="0.5" max="20" value="4" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Depth <span id="stringSeqDepthValue">0%</span></label>
+                        <input type="range" id="stringSeqDepth" min="0" max="100" value="0">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Squeeze <span id="stringSeqSqueezeValue">0%</span></label>
+                        <input type="range" id="stringSeqSqueeze" min="0" max="100" value="0">
+                    </div>
+                    <div class="section-label">5-Step Sequence (Semitones)</div>
+                    <div class="seq-steps">
+                        <div class="seq-step">
+                            <label>1 <span id="stringSeqStep1Value">0</span></label>
+                            <input type="range" id="stringSeqStep1" min="-12" max="12" value="0" class="seq-step-slider">
+                        </div>
+                        <div class="seq-step">
+                            <label>2 <span id="stringSeqStep2Value">2</span></label>
+                            <input type="range" id="stringSeqStep2" min="-12" max="12" value="2" class="seq-step-slider">
+                        </div>
+                        <div class="seq-step">
+                            <label>3 <span id="stringSeqStep3Value">4</span></label>
+                            <input type="range" id="stringSeqStep3" min="-12" max="12" value="4" class="seq-step-slider">
+                        </div>
+                        <div class="seq-step">
+                            <label>4 <span id="stringSeqStep4Value">7</span></label>
+                            <input type="range" id="stringSeqStep4" min="-12" max="12" value="7" class="seq-step-slider">
+                        </div>
+                        <div class="seq-step">
+                            <label>5 <span id="stringSeqStep5Value">12</span></label>
+                            <input type="range" id="stringSeqStep5" min="-12" max="12" value="12" class="seq-step-slider">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Instructions -->
@@ -407,6 +477,15 @@
                         <li><strong>Q-P</strong> - Upper octave</li>
                         <li><strong>A-L</strong> - Middle octave</li>
                         <li><strong>Z-M</strong> - Lower octave</li>
+                    </ul>
+                </div>
+                <div class="instruction-column">
+                    <h4>Functions</h4>
+                    <ul>
+                        <li><strong>RESET</strong> - Reset all parameters</li>
+                        <li><strong>MUTE</strong> - Toggle audio mute</li>
+                        <li><strong>RECORD</strong> - Record & save your realtime audio</li>
+                        <li><strong>STRING SEQ</strong> - Paraphonic arpeggiator</li>
                     </ul>
                 </div>
             </div>
