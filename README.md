@@ -3,6 +3,10 @@
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 
+[Video Demo](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
+
+![Site Screenshot]([https://myoctocat.com/assets/images/base-octocat.svg](https://imgur.com/a/X5vzKYZ)
+
 ### Tools:
 Browser-based audio manipulation tool using WEB AUDIO API
 - 
