@@ -3,6 +3,8 @@
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 
+### Tools:
+Browser-based audio manipulation tool using WEB AUDIO API
 - 
 ## Live Site Deployment:
 https://kenneth-rakentine.github.io/Grains/
