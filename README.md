@@ -12,7 +12,7 @@ https://kenneth-rakentine.github.io/Grains/
 **CONTROLS**
 (use keyboard or on-screen buttons)
 
-1. Drop an mp3 file into the import window, or click inside to open file browser
+1. Drop an audio file into the import window, or click inside to open file browser
 2. Press [SPACEBAR] to begin audio playback
 3. Use the numeric keys (0-9) to change the start position of the audio file and scan through the waveform manually
 4. Use arrow keys (←/→) for fine position navigation
