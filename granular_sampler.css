@@ -42,6 +42,13 @@
     --shadow-inset: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
+/* GrainsIMG LOGO */
+
+#grainsIMG{
+    height:14%;
+    width:14%;
+}
+
 /* Global Reset & Base Styles */
 * {
     margin: 0;
