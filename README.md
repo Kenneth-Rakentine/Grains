@@ -18,14 +18,14 @@ https://kenneth-rakentine.github.io/Grains/
 4. Use arrow keys (←/→) for fine position navigation
 5. Press and hold the alphabetical keys to play the audio chromatically across 3 octaves:
 
-**Q-P**: Upper octave
-**A-L**: Middle octave
-**Z-M**: Lower octave
+**Q-P**: Upper octave<br>
+**A-L**: Middle octave<br>
+**Z-M**: Lower octave<br>
 
 
-Use **RESET** button to restore all parameters to defaults
-Use **MUTE** button to toggle audio output
-Use **LOOP** button to enable/disable looping at current position
+Use **RESET** button to restore all parameters to defaults<br>
+Use **MUTE** button to toggle audio output<br>
+Use **LOOP** button to enable/disable looping at current position<br>
 
 
 
@@ -42,7 +42,7 @@ Use **LOOP** button to enable/disable looping at current position
 
 ### **PARAMETERS**
 
-- **Grain size** changes the length of each "Grain" particle of the audio clipGRANULAR ENGINE PARAMETERS
+**GRANULAR ENGINE** 
 
 Grain Size (10-200ms) - Length of each audio "grain" particle
 Density (1-16) - Number of simultaneous grains generated
