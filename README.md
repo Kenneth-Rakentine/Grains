@@ -1,7 +1,7 @@
 # GRAINS 
 **Granular Browser Sampler** 
 <br>
-![LOGO](https://kenneth-rakentine.github.io/Grains/grainsImg.png)
+![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 
 - 
 ## Live Site Deployment:
@@ -28,7 +28,19 @@ Use **MUTE** button to toggle audio output
 Use **LOOP** button to enable/disable looping at current position
 
 
-**PARAMETERS**
+
+### **RECORDING AUDIO**
+
+- Load audio file and start playing with granular synthesis
+- Press REC button (🔴) or R key
+- Grind your sound into dust particles - everything you hear gets recorded in real-time
+- Press STOP or R again to finish recording
+- File downloads automatically as grains_[timestamp].webm format
+- Compatible with all modern browsers supporting WebM audio
+
+
+
+### **PARAMETERS**
 
 - **Grain size** changes the length of each "Grain" particle of the audio clipGRANULAR ENGINE PARAMETERS
 
@@ -105,18 +117,9 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices
 
 - 
 
-### SIGNAL FLOW
+## SIGNAL FLOW
 GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → STRING SEQ → OUTPUT
 
-
-**RECORDING AUDIO**
-
-- Load audio file and start playing with granular synthesis
-- Press REC button (🔴) or R key
-- Grind your sound into dust particles - everything you hear gets recorded in real-time
-- Press STOP or R again to finish recording
-- File downloads automatically as grains_[timestamp].webm format
-- Compatible with all modern browsers supporting WebM audio
 
 
 
