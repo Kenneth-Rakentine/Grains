@@ -47,6 +47,15 @@
 #grainsIMG{
     height:14%;
     width:14%;
+    opacity:55%;
+    
+}
+
+#grainsIMG:hover{
+    height:14.3%;
+    width:14.3%;
+    opacity:38%;
+    cursor:crosshair;
 }
 
 /* Global Reset & Base Styles */
@@ -64,6 +73,7 @@ body {
     background: linear-gradient(135deg, var(--bg-primary) 0%, var(--metal-dark) 100%);
     min-height: 100vh;
     overflow-x: hidden;
+    
 }
 
 .container {
@@ -90,6 +100,12 @@ body {
     margin-bottom: 4px;
     letter-spacing: 2px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.05) 1px, transparent 1px),
+        radial-gradient(circle at 80% 90%, rgba(0,0,0,0.05) 1px, transparent 1px);
+    background-size: 4px 4px; /* Adjust size for desired graininess */
+    background-color: var(--text-primary); /* Or a specific color */
+    background-blend-mode: overlay; /* or other blend modes */
 }
 
 .subtitle {
