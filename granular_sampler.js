@@ -1931,10 +1931,30 @@ class GranularSampler {
         
         // CHANGED: Fixed playhead behavior - no linear movement unless window scan is used
         const scanRange = (this.windowScan / 100) * this.audioBuffer.duration;
-        const randomOffset = (Math.random() - 0.5) * scanRange;
-        let startTime = this.looperEnabled ? this.loopPosition : this.scanPosition * this.audioBuffer.duration;
-        startTime += randomOffset;
-        startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
+const randomOffset = (Math.random() - 0.5) * scanRange;
+let startTime = this.looperEnabled ? this.loopPosition : this.scanPosition * this.audioBuffer.duration;
+startTime += randomOffset;
+startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
+
+// Advance loop position when looper is enabled
+if (this.looperEnabled) {
+    const grainAdvancement = (this.grainSize / 1000) / this.timeStretch;
+    this.loopPosition += grainAdvancement;
+    
+    // Wrap around to beginning when reaching end
+    if (this.loopPosition >= this.audioBuffer.duration) {
+        this.loopPosition = 0;
+    }
+    
+    // Update scan position for visual feedback
+    this.scanPosition = this.loopPosition / this.audioBuffer.duration;
+    
+    // Update playhead visual
+    const playhead = document.getElementById('playhead');
+    if (playhead) {
+        playhead.style.left = (this.scanPosition * 100) + '%';
+    }
+}
         
         // Grain envelope using selected shape
         const grainDuration = this.grainSize / 1000;
