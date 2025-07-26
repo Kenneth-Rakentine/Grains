@@ -26,7 +26,7 @@ https://kenneth-rakentine.github.io/Grains/
 Use **RESET** button to restore all parameters to defaults<br>
 Use **MUTE** button to toggle audio output<br>
 Use **LOOP** button to enable/disable looping at current position<br>
-Use **WARP** button to lock in a stationary micro-loop within current playhead position [only works when LOOP is enabled]<br>
+Use **WRAP** button to lock in a stationary micro-loop within current playhead position [only works when LOOP is enabled]<br>
 
 
 ### **RECORDING AUDIO**
