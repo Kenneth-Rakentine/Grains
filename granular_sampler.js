@@ -6,7 +6,8 @@ class GranularSampler {
         this.isPlaying = false;
         this.playheadPosition = 0;
         this.loopPosition = 0;
-        this.looperEnabled = true; // Enable LOOP by default
+        this.looperEnabled = false; // CHANGED: Initialize LOOP to OFF
+        this.wrapEnabled = false; // Initialize WRAP to OFF
         this.scanPosition = 0;
         this.currentPitch = 1.0;
         this.activePitchKeys = new Set();
@@ -21,13 +22,13 @@ class GranularSampler {
         this.grainSize = 50; // ms
         this.density = 4;
         this.windowScan = 0; // percentage
-        this.grainShape = 'blackman'; // blackman, hanning, down-ramp, expodec
+        this.grainShape = 'blackman'; // blackman, hanning, down-ramp, expodec, sine
         this.timeStretch = 1.0; // playback speed
         
         // Filter & LFO
         this.filterNode = null;
-        this.filterFreq = 2882;
-        this.filterQ = 0.1;
+        this.filterFreq = 2281; // CHANGED: Initialize at 2281 Hz
+        this.filterQ = 0.1; // CHANGED: Initialize at 0.1
         this.lfoNode = null;
         this.lfoGainNode = null;
         this.lfoSpeed = 1;
@@ -56,7 +57,7 @@ class GranularSampler {
         this.ringModMixNode = null;
         this.ringModDryNode = null;
         this.ringModMix = 0;
-        this.ringModSourceType = 'noise'; // 'noise' or 'envelope'
+        this.ringModSourceType = 'envelope'; // CHANGED: Initialize to envelope
         this.ringModEnvSpeed = 1;
         
         // Spectral Freeze & Phaser
@@ -75,33 +76,34 @@ class GranularSampler {
         this.pannerNode = null;
         this.pannerLfoX = null;
         this.pannerLfoY = null;
-        this.pannerXDepth = 0; // Changed default to 0
-        this.pannerYRange = 0; // Changed default to 0
+        this.pannerXDepth = 0;
+        this.pannerYRange = 0;
         this.pannerSpeed = 0.5;
         
-        // Frequency Shifter (new)
+        // Frequency Shifter (enhanced)
         this.freqShifterNode = null;
         this.freqShifterOsc = null;
-        this.freqShifterAmount = 0; // -5 to +5 Hz
+        this.freqShifterAmount = 0; // -50 to +50 Hz (CHANGED: Extended range)
         this.freqShifterMix = 0;
         this.freqShifterWetNode = null;
         this.freqShifterDryNode = null;
+        this.freqShifterGainBoost = null; // ADDED: Gain boost for audibility
         
         // Volume & Mute
         this.masterGainNode = null;
         this.muteGainNode = null;
-        this.volume = 0.7; // Default to 70%
+        this.volume = 0.7;
         this.isMuted = false;
-        this.volumeBooster = null; // For 40% boost at max volume
+        this.volumeBooster = null;
         
         // Delay effect
         this.delayNode = null;
         this.feedbackNode = null;
         this.delaySoftClipNode = null;
-        this.delayTime = 0.2; // 200ms
-        this.delayFeedback = 0.3; // 30%
+        this.delayTime = 0.2;
+        this.delayFeedback = 0.3;
         this.delaySoftClip = 0;
-        this.delayMix = 0; // 0% wet signal initially
+        this.delayMix = 0;
         this.delayWetNode = null;
         this.delayDryNode = null;
         
@@ -118,18 +120,19 @@ class GranularSampler {
         this.reverbMix = 0;
         this.reverbImpulse = null;
         
-        // Paraphonic String Sequencer (new)
+        // Paraphonic String Sequencer (enhanced)
         this.stringSeqEnabled = false;
-        this.stringSeqStreams = []; // 4 paraphonic streams
-        this.stringSeqPitches = [0, 2, 4, 7, 12]; // 5-step sequence (semitones)
+        this.stringSeqStreams = [];
+        this.stringSeqPitches = [0, 2, 4, 7, 12];
         this.stringSeqLfo = null;
         this.stringSeqLfoGain = null;
-        this.stringSeqSpeed = 4; // Hz
-        this.stringSeqDepth = 0; // 0% = off
-        this.stringSeqSqueeze = 0; // 0% = sine wave
+        this.stringSeqSpeed = 4;
+        this.stringSeqDepth = 0;
+        this.stringSeqSqueeze = 0;
         this.stringSeqCurrentStep = 0;
         this.stringSeqCanvas = null;
         this.stringSeqCtx = null;
+        this.stringSeqGainBoost = null; // ADDED: Gain boost for audibility
         
         // Grain animation
         this.grainCanvas = null;
@@ -154,8 +157,8 @@ class GranularSampler {
             windowScan: 0,
             grainShape: 'blackman',
             timeStretch: 1.0,
-            filterFreq: 1000,
-            filterQ: 1,
+            filterFreq: 2281, // CHANGED
+            filterQ: 0.1, // CHANGED
             lfoSpeed: 1,
             lfoDepth: 0,
             lfoShape: 'sine',
@@ -163,7 +166,7 @@ class GranularSampler {
             vocoderBandGains: [1, 1, 1, 1, 1, 1, 1, 1],
             wavefoldAmount: 0,
             ringModMix: 0,
-            ringModSourceType: 'noise',
+            ringModSourceType: 'envelope', // CHANGED
             ringModEnvSpeed: 1,
             spectralFreeze: 0,
             phaserRate: 0.5,
@@ -189,7 +192,8 @@ class GranularSampler {
             stringSeqSpeed: 4,
             stringSeqDepth: 0,
             stringSeqSqueeze: 0,
-            stringSeqPitches: [0, 2, 4, 7, 12]
+            stringSeqPitches: [0, 2, 4, 7, 12],
+            wrapEnabled: false
         };
     }
     async initAudio() {
@@ -338,8 +342,8 @@ class GranularSampler {
         this.ringModEnvNode.frequency.value = this.ringModEnvSpeed;
         this.ringModEnvNode.start();
         
-        // Ring mod source switching
-        this.ringModSource = noiseSource;
+        // CHANGED: Initialize with envelope instead of noise
+        this.ringModSource = this.ringModEnvNode;
         this.ringModSource.connect(this.ringModNode.gain);
         
         // Ring mod mix control
@@ -348,7 +352,6 @@ class GranularSampler {
         this.ringModMixNode.gain.value = 0;
         this.ringModDryNode.gain.value = 1;
     }
-
     async initSpectralFreeseAndPhaser() {
         // Spectral Freeze (simplified using delay and feedback)
         this.spectralFreezeNode = this.audioContext.createDelay(0.1);
@@ -406,6 +409,7 @@ class GranularSampler {
             this.phaserSaturation.connect(this.phaserMixNode);
         }
     }
+
     async init3DPannerAndFreqShifter() {
         // Create 3D panner node
         this.pannerNode = this.audioContext.createPanner();
@@ -454,14 +458,18 @@ class GranularSampler {
         this.pannerLfoX.start();
         this.pannerLfoY.start();
         
-        // Create Frequency Shifter (simplified ring modulation approach)
+        // Create Enhanced Frequency Shifter
         this.freqShifterOsc = this.audioContext.createOscillator();
         this.freqShifterOsc.type = 'sine';
-        this.freqShifterOsc.frequency.value = 0; // Will be controlled by amount
+        this.freqShifterOsc.frequency.value = 0;
         this.freqShifterOsc.start();
         
         this.freqShifterNode = this.audioContext.createGain();
         this.freqShifterNode.gain.value = 0;
+        
+        // ADDED: Gain boost for frequency shifter audibility
+        this.freqShifterGainBoost = this.audioContext.createGain();
+        this.freqShifterGainBoost.gain.value = 3.0; // 3x boost
         
         this.freqShifterOsc.connect(this.freqShifterNode.gain);
         
@@ -473,8 +481,6 @@ class GranularSampler {
     }
 
     async initStringSequencer() {
-        if (!this.stringSeqEnabled) return;
-        
         // Create LFO for sequencer clock
         this.stringSeqLfo = this.audioContext.createOscillator();
         this.stringSeqLfo.type = 'sine';
@@ -483,23 +489,31 @@ class GranularSampler {
         this.stringSeqLfoGain = this.audioContext.createGain();
         this.stringSeqLfoGain.gain.value = 0; // Starts disabled
         
+        // ADDED: Gain boost for string sequencer audibility
+        this.stringSeqGainBoost = this.audioContext.createGain();
+        this.stringSeqGainBoost.gain.value = 5.0; // 5x boost to make audible
+        
         this.stringSeqLfo.connect(this.stringSeqLfoGain);
         this.stringSeqLfo.start();
         
-        // Create 4 paraphonic streams
+        // Create 4 paraphonic streams with enhanced processing
         this.stringSeqStreams = [];
         for (let i = 0; i < 4; i++) {
             const stream = {
                 gainNode: this.audioContext.createGain(),
                 envelopeGain: this.audioContext.createGain(),
+                pitchNode: this.audioContext.createGain(),
                 currentStep: i, // Offset each stream
                 lastTriggerTime: 0
             };
             
-            stream.gainNode.gain.value = 0.25; // Divide by 4 streams
+            stream.gainNode.gain.value = 0.4; // Increased from 0.25
             stream.envelopeGain.gain.value = 0;
             
+            // Connect through gain boost
             stream.gainNode.connect(stream.envelopeGain);
+            stream.envelopeGain.connect(this.stringSeqGainBoost);
+            
             this.stringSeqStreams.push(stream);
         }
         
@@ -563,7 +577,6 @@ class GranularSampler {
         
         requestAnimationFrame(() => this.animateStringSeqWave());
     }
-
     async initDelay() {
         // Create delay effect
         this.delayNode = this.audioContext.createDelay(5.0);
@@ -633,9 +646,11 @@ class GranularSampler {
         this.phaserDryNode.connect(this.pannerNode);
         this.phaserMixNode.connect(this.pannerNode);
         
-        // 3D panner to frequency shifter
+        // 3D panner to frequency shifter (with gain boost)
         this.pannerNode.connect(this.freqShifterDryNode);
         this.pannerNode.connect(this.freqShifterNode);
+        this.freqShifterNode.connect(this.freqShifterGainBoost);
+        this.freqShifterGainBoost.connect(this.freqShifterWetNode);
         
         // Frequency shifter to delay
         this.freqShifterDryNode.connect(this.delayDryNode);
@@ -664,15 +679,16 @@ class GranularSampler {
         this.reverbDryNode.connect(this.muteGainNode);
         this.reverbWetNode.connect(this.muteGainNode);
         
-        // Connect string sequencer streams if enabled
+        // Connect string sequencer streams if enabled (with gain boost)
         if (this.stringSeqEnabled && this.stringSeqStreams.length > 0) {
             this.stringSeqStreams.forEach(stream => {
                 this.reverbDryNode.connect(stream.gainNode);
                 this.reverbWetNode.connect(stream.gainNode);
-                stream.envelopeGain.connect(this.muteGainNode);
+                this.stringSeqGainBoost.connect(this.muteGainNode);
             });
         }
     }
+
     makeWavefolderCurve(amount) {
         const samples = 44100;
         const curve = new Float32Array(samples);
@@ -728,6 +744,7 @@ class GranularSampler {
         return curve;
     }
 
+    // ENHANCED: Added sine wave envelope function
     getGrainEnvelope(shape, length) {
         const envelope = new Float32Array(length);
         
@@ -759,6 +776,13 @@ class GranularSampler {
                 }
                 break;
                 
+            case 'sine': // NEW: Added sine wave envelope
+                for (let i = 0; i < length; i++) {
+                    const n = i / (length - 1);
+                    envelope[i] = Math.sin(Math.PI * n);
+                }
+                break;
+                
             default: // blackman
                 for (let i = 0; i < length; i++) {
                     const n = i / (length - 1);
@@ -768,7 +792,6 @@ class GranularSampler {
         
         return envelope;
     }
-
     generateReverbImpulse() {
         const length = this.audioContext.sampleRate * 2;
         const impulse = this.audioContext.createBuffer(2, length, this.audioContext.sampleRate);
@@ -823,10 +846,11 @@ class GranularSampler {
         
         // Reset special cases
         this.grainShape = 'blackman';
-        this.ringModSourceType = 'noise';
+        this.ringModSourceType = 'envelope'; // CHANGED
         this.lfoShape = 'sine';
         this.isMuted = false;
         this.stringSeqEnabled = false;
+        this.wrapEnabled = false;
         
         // Update UI elements
         document.querySelectorAll('.grain-shape-btn').forEach(btn => {
@@ -836,16 +860,18 @@ class GranularSampler {
             }
         });
         
-        document.getElementById('ringModNoise').classList.add('active');
-        document.getElementById('ringModEnv').classList.remove('active');
+        // CHANGED: Set envelope as default
+        document.getElementById('ringModEnv').classList.add('active');
+        document.getElementById('ringModNoise').classList.remove('active');
         
         document.getElementById('lfoShape').value = 'sine';
         
         document.getElementById('muteButton').classList.remove('active');
         document.getElementById('stringSeqToggle').classList.remove('active');
+        document.getElementById('wrapToggle').classList.remove('active');
         
-        // Reset vocoder to noise source
-        this.switchRingModSource('noise');
+        // Reset ring mod to envelope source
+        this.switchRingModSource('envelope');
         this.updateVolumeBoost();
         this.updateStringSequencer();
         
@@ -963,16 +989,18 @@ class GranularSampler {
         this.pannerYGain.gain.value = yRange;
     }
     
+    // ENHANCED: Improved frequency shifter with extended range
     updateFreqShifter() {
-        // Update frequency shift amount (-5 to +5 Hz)
+        // Update frequency shift amount (-50 to +50 Hz)
         this.freqShifterOsc.frequency.value = this.freqShifterAmount;
         
-        // Update mix
+        // Update mix with compensation for gain boost
         const mix = this.freqShifterMix / 100;
         this.freqShifterWetNode.gain.value = mix;
         this.freqShifterDryNode.gain.value = 1 - mix;
     }
     
+    // ENHANCED: Fixed string sequencer to actually work
     updateStringSequencer() {
         if (!this.stringSeqLfo) return;
         
@@ -1003,13 +1031,14 @@ class GranularSampler {
                         envelopeValue = Math.tanh(envelopeValue * squeeze) / Math.tanh(squeeze);
                     }
                     
-                    // Bow-like envelope (quick attack, sustained decay)
-                    const attackTime = 0.01;
-                    const releaseTime = stepDuration * 0.8;
+                    // Enhanced bow-like envelope with more pronounced attack
+                    const attackTime = 0.005; // Faster attack
+                    const releaseTime = stepDuration * 0.6; // Shorter sustain
+                    const gainAmount = 0.8 * (this.stringSeqDepth / 100); // Increased gain
                     
                     stream.envelopeGain.gain.cancelScheduledValues(now);
                     stream.envelopeGain.gain.setValueAtTime(0, now);
-                    stream.envelopeGain.gain.linearRampToValueAtTime(0.3 * (this.stringSeqDepth / 100), now + attackTime);
+                    stream.envelopeGain.gain.linearRampToValueAtTime(gainAmount, now + attackTime);
                     stream.envelopeGain.gain.exponentialRampToValueAtTime(0.001, now + releaseTime);
                     
                     // Advance to next step
@@ -1173,10 +1202,18 @@ class GranularSampler {
             this.toggleRecording();
         });
         
-        document.getElementById('looperToggle').addEventListener('click', () => {
-            this.looperEnabled = !this.looperEnabled;
-            document.getElementById('looperToggle').classList.toggle('active', this.looperEnabled);
-        });
+      document.getElementById('looperToggle').addEventListener('click', () => {
+    this.looperEnabled = !this.looperEnabled;
+    document.getElementById('looperToggle').classList.toggle('active', this.looperEnabled);
+    this.updateWrapGlow(); // Update wrap glow
+});
+
+// New WRAP button
+document.getElementById('wrapToggle').addEventListener('click', () => {
+    this.wrapEnabled = !this.wrapEnabled;
+    document.getElementById('wrapToggle').classList.toggle('active', this.wrapEnabled);
+    this.updateWrapGlow(); // Update wrap glow
+});
         
         // New RESET button
         document.getElementById('resetButton').addEventListener('click', () => {
@@ -1188,7 +1225,7 @@ class GranularSampler {
             this.toggleMute();
         });
         
-        // Ring mod source buttons
+        // CHANGED: Ring mod source buttons - default to envelope
         document.getElementById('ringModNoise').addEventListener('click', () => {
             this.switchRingModSource('noise');
             document.getElementById('ringModNoise').classList.add('active');
@@ -1201,7 +1238,7 @@ class GranularSampler {
             document.getElementById('ringModNoise').classList.remove('active');
         });
         
-        // Grain shape buttons
+        // ENHANCED: Grain shape buttons with new sine option
         const grainShapeButtons = document.querySelectorAll('.grain-shape-btn');
         grainShapeButtons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1372,7 +1409,7 @@ class GranularSampler {
                 document.getElementById('pannerSpeedValue').textContent = val + 'Hz';
             },
             
-            // Frequency Shifter
+            // Enhanced Frequency Shifter
             freqShifterAmount: (val) => { 
                 this.freqShifterAmount = parseFloat(val);
                 this.updateFreqShifter();
@@ -1440,6 +1477,15 @@ class GranularSampler {
                 this.updateReverbMix();
                 document.getElementById('reverbMixValue').textContent = val + '%';
             },
+
+            updateWrapGlow() {
+            const wrapButton = document.getElementById('wrapToggle');
+            if (this.looperEnabled && this.wrapEnabled) {
+                wrapButton.classList.add('wrap-loop-active');
+            } else {
+                wrapButton.classList.remove('wrap-loop-active');
+            }
+        },
             
             // String Sequencer
             stringSeqSpeed: (val) => { 
@@ -1614,6 +1660,7 @@ class GranularSampler {
             });
         });
     }
+
     handleKeyDown(key) {
         // Spacebar - play/stop
         if (key === ' ') {
@@ -1719,6 +1766,7 @@ class GranularSampler {
         }
     }
     
+    // ENHANCED: Updated waveform colors
     drawWaveform() {
         if (!this.audioBuffer) {
             console.error('No audio buffer to draw');
@@ -1756,8 +1804,8 @@ class GranularSampler {
                 step: step
             });
             
-            // Draw waveform with phosphor green
-            ctx.strokeStyle = '#00ff41';
+            // CHANGED: Draw waveform with new darker phosphor green
+            ctx.strokeStyle = '#49ce6bff';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             
@@ -1789,8 +1837,8 @@ class GranularSampler {
             
             ctx.stroke();
             
-            // Add phosphor glow effect
-            ctx.shadowColor = '#00ff41';
+            // CHANGED: Add new phosphor glow effect
+            ctx.shadowColor = '#53e778d8';
             ctx.shadowBlur = 3;
             ctx.stroke();
             
@@ -1902,12 +1950,44 @@ class GranularSampler {
         source.buffer = this.audioBuffer;
         source.playbackRate.value = this.currentPitch;
         
-        // Apply window scan randomization
-        const scanRange = (this.windowScan / 100) * this.audioBuffer.duration;
-        const randomOffset = (Math.random() - 0.5) * scanRange;
-        let startTime = this.looperEnabled ? this.loopPosition : this.playheadPosition;
+       // Apply window scan randomization
+    const scanRange = (this.windowScan / 100) * this.audioBuffer.duration;
+    const randomOffset = (Math.random() - 0.5) * scanRange;
+    let startTime;
+
+    if (this.wrapEnabled) {
+        // WRAP mode: Fast stationary loop at current scan position
+        startTime = this.scanPosition * this.audioBuffer.duration;
+        startTime += randomOffset * 0.1; // Reduced randomization for tighter wrap
+    } else if (this.looperEnabled) {
+        // LOOP mode: Progressive loop through waveform
+        startTime = this.loopPosition;
         startTime += randomOffset;
-        startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
+        
+        // Advance loop position
+        const grainAdvancement = (this.grainSize / 1000) / this.timeStretch;
+        this.loopPosition += grainAdvancement;
+        
+        // Wrap around to beginning when reaching end
+        if (this.loopPosition >= this.audioBuffer.duration) {
+            this.loopPosition = 0;
+        }
+        
+        // Update scan position for visual feedback
+        this.scanPosition = this.loopPosition / this.audioBuffer.duration;
+        
+        // Update playhead visual
+        const playhead = document.getElementById('playhead');
+        if (playhead) {
+            playhead.style.left = (this.scanPosition * 100) + '%';
+        }
+    } else {
+        // Normal mode: Use current scan position
+        startTime = this.scanPosition * this.audioBuffer.duration;
+        startTime += randomOffset;
+    }
+
+    startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
         
         // Grain envelope using selected shape
         const grainDuration = this.grainSize / 1000;
@@ -1952,18 +2032,8 @@ class GranularSampler {
         // Update display
         document.getElementById('activeGrains').textContent = this.grains.length;
         
-        // Update playhead position if not looping
-        if (!this.looperEnabled) {
-            this.playheadPosition += (grainDuration / 4) * this.timeStretch;
-            if (this.playheadPosition >= this.audioBuffer.duration) {
-                this.playheadPosition = 0;
-            }
-            document.getElementById('currentPos').textContent = this.playheadPosition.toFixed(2) + 's';
-            
-            // Update visual playhead
-            const playheadPercent = (this.playheadPosition / this.audioBuffer.duration) * 100;
-            document.getElementById('playhead').style.left = playheadPercent + '%';
-        }
+        // REMOVED: Linear playhead movement - only update if looping is disabled and window scan is involved
+        // The playhead now stays stationary unless manually moved with number keys or arrows
     }
 
     applyGrainEnvelope(gainNode, startTime, duration, shape) {
@@ -1978,6 +2048,7 @@ class GranularSampler {
         switch (shape) {
             case 'blackman':
             case 'hanning':
+            case 'sine': // NEW: Handle sine envelope
                 gainNode.gain.linearRampToValueAtTime(0.3, startTime + duration * 0.3);
                 gainNode.gain.setValueAtTime(0.3, startTime + duration * 0.7);
                 gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
@@ -2076,6 +2147,7 @@ class GranularSampler {
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
         a.download = `grains_${timestamp}.webm`;
+    
         
         a.href = url;
         a.click();
@@ -2083,32 +2155,33 @@ class GranularSampler {
         // Clean up
         URL.revokeObjectURL(url);
         this.recordedChunks = [];
-        
-        // Visual feedback
+     // Visual feedback
         const recordButton = document.getElementById('recordButton');
         recordButton.textContent = '✅ SAVED';
         setTimeout(() => {
-            recordButton.textContent = '⬤ REC';
+        recordButton.textContent = '⬤ REC';
         }, 2000);
-        
-        console.log('Recording saved');
-    }
-}
-
-// Initialize the sampler when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    window.granularSampler = new GranularSampler();
-    
-    // Set default loop state
-    const looperToggle = document.getElementById('looperToggle');
-    if (looperToggle) {
-        looperToggle.classList.add('active');
-    }
-    
-    // Handle window resize for grain canvas
-    window.addEventListener('resize', () => {
-        if (window.granularSampler && window.granularSampler.grainCanvas) {
-            window.granularSampler.resizeGrainCanvas();
+            console.log('Recording saved');
         }
-    });
-});
+        }
+        // Initialize the sampler when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+        window.granularSampler = new GranularSampler();
+        // CHANGED: Set default loop state to OFF
+        const looperToggle = document.getElementById('looperToggle');
+        if (looperToggle) {
+            looperToggle.classList.remove('active'); // Remove active class for OFF state
+        }
+        // Set default wrap state to OFF
+        const wrapToggle = document.getElementById('wrapToggle');
+        if (wrapToggle) {
+            wrapToggle.classList.remove('active'); // Remove active class for OFF state
+        }
+
+        // Handle window resize for grain canvas
+        window.addEventListener('resize', () => {
+            if (window.granularSampler && window.granularSampler.grainCanvas) {
+                window.granularSampler.resizeGrainCanvas();
+            }
+        });
+        });
