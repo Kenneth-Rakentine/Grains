@@ -57,7 +57,7 @@
             <div class="transport-controls">
                 <button class="play-button" id="playButton">▶ PLAY</button>
                 <button class="record-button" id="recordButton">⬤ REC</button>
-                <button class="loop-button active" id="looperToggle">↻ LOOP</button>
+                <button class="loop-button" id="looperToggle">↻ LOOP</button>
                 <button class="reset-button" id="resetButton">⟲ RESET</button>
             </div>
             <div class="master-volume-control">
@@ -148,6 +148,18 @@
             <!-- Playback Status Panel -->
             <div class="control-panel playback-panel">
                 <h3>Playback Status</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <polygon points="6,5 6,11 10,8"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="status-display compact">
                     <div class="status-item">
                         <label>Playing:</label>
@@ -171,6 +183,20 @@
             <!-- Granular Parameters -->
             <div class="control-panel">
                 <h3>Granular Engine</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="3" cy="8" r="1"/>
+                        <circle cx="8" cy="8" r="1"/>
+                        <circle cx="13" cy="8" r="1"/>
+                        <path d="M3 8h10M3 8l2-2M3 8l2 2M13 8l-2-2M13 8l-2 2"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="slider-item compact">
                         <label>Grain Size <span id="grainSizeValue">50ms</span></label>
@@ -191,6 +217,7 @@
                             <button class="grain-shape-btn" id="hanningShape" data-shape="hanning">Hanning</button>
                             <button class="grain-shape-btn" id="downRampShape" data-shape="down-ramp">Down-Ramp</button>
                             <button class="grain-shape-btn" id="expoDecShape" data-shape="expodec">ExpoDec</button>
+                            <button class="grain-shape-btn" id="sineShape" data-shape="sine">Sine</button>
                         </div>
                     </div>
                     <div class="slider-item compact">
@@ -203,14 +230,27 @@
             <!-- Filter Section -->
             <div class="control-panel">
                 <h3>Filter & LFO</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 6l4-4 4 4-4 4-4-4z"/>
+                        <path d="M10 10l4-4"/>
+                        <circle cx="12" cy="12" r="2"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="slider-item compact">
-                        <label>Frequency <span id="filterFreqValue">1000Hz</span></label>
-                        <input type="range" id="filterFreq" min="100" max="8000" value="1000">
+                        <label>Frequency <span id="filterFreqValue">2281Hz</span></label>
+                        <input type="range" id="filterFreq" min="100" max="8000" value="2281">
                     </div>
                     <div class="slider-item compact">
-                        <label>Q Factor <span id="filterQValue">1</span></label>
-                        <input type="range" id="filterQ" min="0.1" max="10" value="1" step="0.1">
+                        <label>Q Factor <span id="filterQValue">0.1</span></label>
+                        <input type="range" id="filterQ" min="0.1" max="10" value="0.1" step="0.1">
                     </div>
                     <div class="slider-item compact">
                         <label>LFO Speed <span id="lfoSpeedValue">1Hz</span></label>
@@ -235,6 +275,21 @@
             <!-- 8-Band Vocoder -->
             <div class="control-panel">
                 <h3>8-Band Vocoder</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="1" y="11" width="2" height="4"/>
+                        <rect x="4" y="9" width="2" height="6"/>
+                        <rect x="7" y="6" width="2" height="9"/>
+                        <rect x="10" y="8" width="2" height="7"/>
+                        <rect x="13" y="5" width="2" height="10"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="vocoder-bands">
                         <div class="vocoder-band">
@@ -280,6 +335,18 @@
             <!-- Wavefolder & Ring Mod -->
             <div class="control-panel">
                 <h3>Wavefolder & Ring Mod</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 8c2-4 4 4 6 0s4 4 6 0"/>
+                        <circle cx="8" cy="12" r="2"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="slider-item compact">
                         <label>Fold Amount <span id="wavefoldValue">0%</span></label>
@@ -287,8 +354,8 @@
                     </div>
                     <div class="section-label">Ring Modulator</div>
                     <div class="button-group">
-                        <button class="mod-source-btn active" id="ringModNoise">Noise</button>
-                        <button class="mod-source-btn" id="ringModEnv">Envelope</button>
+                        <button class="mod-source-btn" id="ringModNoise">Noise</button>
+                        <button class="mod-source-btn active" id="ringModEnv">Envelope</button>
                     </div>
                     <div class="slider-item compact">
                         <label>Ring Mod Mix <span id="ringModMixValue">0%</span></label>
@@ -304,6 +371,18 @@
             <!-- Spectral Freeze & Phaser -->
             <div class="control-panel">
                 <h3>Spectral Freeze & Phaser</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M8 2v12M2 8h12"/>
+                        <circle cx="8" cy="8" r="3"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="section-label">Spectral Freeze</div>
                     <div class="slider-item compact">
@@ -333,6 +412,18 @@
             <!-- 3D Panner & Frequency Shifter -->
             <div class="control-panel">
                 <h3>3D Panner & Freq Shifter</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <path d="M8 2v4M8 10v4M2 8h4M10 8h4"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="section-label">Binaural 3D Panner</div>
                     <div class="slider-item compact">
@@ -350,7 +441,7 @@
                     <div class="section-label">Frequency Shifter</div>
                     <div class="slider-item compact">
                         <label>Shift <span id="freqShifterAmountValue">0Hz</span></label>
-                        <input type="range" id="freqShifterAmount" min="-5" max="5" value="0" step="0.1">
+                        <input type="range" id="freqShifterAmount" min="-50" max="50" value="0" step="0.1">
                     </div>
                     <div class="slider-item compact">
                         <label>Mix <span id="freqShifterMixValue">0%</span></label>
@@ -362,6 +453,20 @@
             <!-- Delay Section -->
             <div class="control-panel">
                 <h3>Delay</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 8h12"/>
+                        <circle cx="5" cy="8" r="1"/>
+                        <circle cx="8" cy="8" r="1"/>
+                        <circle cx="11" cy="8" r="1"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="slider-item compact">
                         <label>Time <span id="delayTimeValue">200ms</span></label>
@@ -385,6 +490,18 @@
             <!-- Reverb Section -->
             <div class="control-panel">
                 <h3>12-Bit Reverb</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="10" height="10" rx="2"/>
+                        <path d="M8 6v4M6 8h4"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="slider-item compact">
                         <label>Size <span id="reverbSizeValue">50%</span></label>
@@ -412,6 +529,17 @@
             <!-- String Sequencer -->
             <div class="control-panel">
                 <h3>Paraphonic String Seq</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 12l2-8 2 8 2-8 2 8 2-8 2 8"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
                 <div class="slider-group">
                     <div class="string-seq-toggle">
                         <button class="seq-toggle-btn" id="stringSeqToggle">◼ OFF</button>
