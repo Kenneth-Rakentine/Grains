@@ -3,7 +3,10 @@
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 
-[Video Demo](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
+-
+
+**Video Demo**
+[Youtube](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
 
 
 ### Tools:
@@ -23,7 +26,7 @@ https://kenneth-rakentine.github.io/Grains/
 (use keyboard or on-screen buttons)
 
 1. Drop an audio file into the import window, or click inside to open file browser
-2. Press [SPACEBAR] to begin audio playback
+2. Press [SPACEBAR] (or 'START' on-screen button) to begin audio playback
 3. Use the numeric keys (0-9) to change the start position of the audio file and scan through the waveform manually
 4. Use arrow keys (←/→) for fine position navigation
 5. Press and hold the alphabetical keys to play the audio chromatically across 3 octaves:
