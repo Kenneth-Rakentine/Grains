@@ -56,6 +56,26 @@
     --shadow-inset: inset 0 2px 4px rgba(0,0,0,0.5);
 }
 
+/* iPhone Notch/Dynamic Island Styling */
+@supports (padding: max(0px)) {
+    html {
+        background-color: var(--bg-primary);
+        padding-top: env(safe-area-inset-top);
+    }
+    
+    body {
+        background: linear-gradient(135deg, var(--bg-primary) 0%, var(--metal-dark) 100%);
+        padding-top: 0; /* Reset body padding since html handles it */
+    }
+    
+    /* Ensure the container respects the safe area */
+    .container {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+}
+
 /* SVG Noise Filters */
 .svg-filters {
     position: absolute;
