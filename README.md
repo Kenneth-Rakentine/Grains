@@ -3,10 +3,18 @@
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 
+[Video Demo](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
+
+
 ### Tools:
 Browser-based audio manipulation tool using WEB AUDIO API
 - 
 ## Live Site Deployment:
+
+http://browsergrains.surge.sh/
+
+OR
+
 https://kenneth-rakentine.github.io/Grains/
 
 - 
