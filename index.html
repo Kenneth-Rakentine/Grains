@@ -11,20 +11,21 @@
     <div class="container">
         <!-- Header with transport controls -->
         <div class="main-header">
-                <img src="grainsIMG.png" alt="Grains Logo" id="grainsIMG" onclick="location.reload()">
-
-            
+            <img src="grainsIMG.png" alt="Grains Logo" id="grainsIMG" onclick="location.reload()">
             <div class="subtitle">Granular Synthesis Engine</div>
+            <!-- Animated particles container -->
+            <div class="logo-particles" id="logoParticles"></div>
         </div>
 
-       
-        <!-- Drop Zone -->
+        <!-- Drop Zone with falling dust animation -->
         <div class="drop-zone" id="dropZone">
             <div class="drop-content">
                 <div class="drop-icon">◉</div>
                 <div class="drop-text">Drop audio file here or click to browse</div>
+                <!-- Falling dust container -->
+                <div class="falling-dust" id="fallingDust"></div>
             </div>
-            <input type="file" id="fileInput" accept=".mp3" style="display: none;">
+            <input type="file" id="fileInput" accept=".mp3,.wav" style="display: none;">
         </div>
         
         <!-- Status Bar -->
@@ -41,6 +42,8 @@
                         <canvas id="waveform"></canvas>
                         <div class="scan-line" id="playhead"></div>
                         <canvas id="grainCanvas"></canvas>
+                        <!-- Glass effects -->
+                        <div class="scope-glass-effects" id="scopeGlassEffects"></div>
                     </div>
                 </div>
                 <div class="scope-controls">
@@ -54,94 +57,121 @@
             </div>
         </div>
 
-         <!-- Top Transport Bar -->
-         <div class="transport-bar">
-            <div class="transport-controls">
-                <button class="play-button" id="playButton">▶ PLAY</button>
-                <button class="record-button" id="recordButton">⬤ REC</button>
-                <button class="loop-button" id="looperToggle">↻ LOOP</button>
-                <button id="wrapToggle" class="control-btn">&#9618; WRAP</button>
-                <button class="reset-button" id="resetButton">⟲ RESET</button>
+        <!-- Transport Bar -->
+        <div class="transport-bar-container">
+            <div class="transport-section transport-controls-section">
+                <h4>Transport</h4>
+                <div class="transport-controls">
+                    <button class="play-button" id="playButton">▶ PLAY</button>
+                    <button class="record-button" id="recordButton">⬤ REC</button>
+                </div>
             </div>
-            <div class="master-volume-control">
-                <button class="mute-button" id="muteButton">🔊 MUTE</button>
-                <label>MASTER VOL: <span id="volumeValue">70%</span></label>
-                <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+            
+            <div class="transport-section loop-controls-section">
+                <h4>Loop Control</h4>
+                <div class="loop-controls">
+                    <button class="loop-button" id="looperToggle">↻ LOOP</button>
+                    <button id="wrapToggle" class="control-btn">&#9618; WRAP</button>
+                    <button class="reset-button" id="resetButton">⟲ RESET</button>
+                </div>
+                <!-- Preset Controls -->
+                <div class="preset-controls">
+                    <select id="presetSelect" class="dark-select">
+                        <option value="">Select Preset...</option>
+                    </select>
+                    <button id="savePresetBtn" class="preset-btn">Save</button>
+                    <button id="loadPresetBtn" class="preset-btn">Load</button>
+                </div>
+            </div>
+            
+            <div class="transport-section volume-section">
+                <h4>Master Volume</h4>
+                <div class="volume-controls">
+                    <button class="mute-button" id="muteButton">🔊 MUTE</button>
+                    <div class="master-volume-control">
+                        <label>VOL: <span id="volumeValue">70%</span></label>
+                        <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Signal Path Diagram -->
         <div class="signal-path-diagram">
             <div class="signal-flow">
-                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">VOCODER</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">FREQ SHIFTER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">STRING SEQ</span> → <span class="process-module">OUTPUT</span>
+                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">VOCODER</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">FREQ SHIFTER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">COMB SEQ</span> → <span class="process-module">OUTPUT</span>
             </div>
         </div>
         
-        
-        <!-- Mobile Keyboard -->
+        <!-- Mobile Keyboard - Split into 3 sections -->
         <div class="mobile-keyboard" style="display: none;" id="mobileKeyboard">
-            <div class="keyboard-section">
-                <h4>Playback Control</h4>
-                <div class="keyboard-row">
-                    <button class="key-btn space-key" data-key=" ">SPACE - Play/Stop</button>
+            <div class="keyboard-grid">
+                <!-- Section 1: Playback Control -->
+                <div class="keyboard-section">
+                    <h4>Playback Control</h4>
+                    <div class="keyboard-row">
+                        <button class="key-btn space-key" data-key=" ">SPACE - Play/Stop</button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="keyboard-section">
-                <h4>Sample Position (1-9, 0=Start)</h4>
-                <div class="keyboard-row">
-                    <button class="key-btn scan-key" data-key="1">1</button>
-                    <button class="key-btn scan-key" data-key="2">2</button>
-                    <button class="key-btn scan-key" data-key="3">3</button>
-                    <button class="key-btn scan-key" data-key="4">4</button>
-                    <button class="key-btn scan-key" data-key="5">5</button>
+                
+                <!-- Section 2: Sample Position -->
+                <div class="keyboard-section">
+                    <h4>Sample Position (1-9, 0=Start)</h4>
+                    <div class="keyboard-row">
+                        <button class="key-btn scan-key" data-key="1">1</button>
+                        <button class="key-btn scan-key" data-key="2">2</button>
+                        <button class="key-btn scan-key" data-key="3">3</button>
+                        <button class="key-btn scan-key" data-key="4">4</button>
+                        <button class="key-btn scan-key" data-key="5">5</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn scan-key" data-key="6">6</button>
+                        <button class="key-btn scan-key" data-key="7">7</button>
+                        <button class="key-btn scan-key" data-key="8">8</button>
+                        <button class="key-btn scan-key" data-key="9">9</button>
+                        <button class="key-btn scan-key" data-key="0">0</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn fine-key" data-key="ArrowLeft">◀ MICRO BACK</button>
+                        <button class="key-btn fine-key" data-key="ArrowRight">MICRO FORWARD ▶</button>
+                    </div>
                 </div>
-                <div class="keyboard-row">
-                    <button class="key-btn scan-key" data-key="6">6</button>
-                    <button class="key-btn scan-key" data-key="7">7</button>
-                    <button class="key-btn scan-key" data-key="8">8</button>
-                    <button class="key-btn scan-key" data-key="9">9</button>
-                    <button class="key-btn scan-key" data-key="0">0</button>
-                </div>
-                <div class="keyboard-row">
-                    <button class="key-btn fine-key" data-key="ArrowLeft">◀ FINE BACK</button>
-                    <button class="key-btn fine-key" data-key="ArrowRight">FINE FORWARD ▶</button>
-                </div>
-            </div>
-            
-            <div class="keyboard-section">
-                <h4>Chromatic Pitch Control</h4>
-                <div class="keyboard-row">
-                    <button class="key-btn" data-key="q" data-pitch="-12">Q</button>
-                    <button class="key-btn" data-key="w" data-pitch="-11">W</button>
-                    <button class="key-btn" data-key="e" data-pitch="-10">E</button>
-                    <button class="key-btn" data-key="r" data-pitch="-9">R</button>
-                    <button class="key-btn" data-key="t" data-pitch="-8">T</button>
-                    <button class="key-btn" data-key="y" data-pitch="-7">Y</button>
-                    <button class="key-btn" data-key="u" data-pitch="-6">U</button>
-                    <button class="key-btn" data-key="i" data-pitch="-5">I</button>
-                    <button class="key-btn" data-key="o" data-pitch="-4">O</button>
-                    <button class="key-btn" data-key="p" data-pitch="-3">P</button>
-                </div>
-                <div class="keyboard-row">
-                    <button class="key-btn" data-key="a" data-pitch="-2">A</button>
-                    <button class="key-btn" data-key="s" data-pitch="-1">S</button>
-                    <button class="key-btn" data-key="d" data-pitch="0">D</button>
-                    <button class="key-btn" data-key="f" data-pitch="1">F</button>
-                    <button class="key-btn" data-key="g" data-pitch="2">G</button>
-                    <button class="key-btn" data-key="h" data-pitch="3">H</button>
-                    <button class="key-btn" data-key="j" data-pitch="4">J</button>
-                    <button class="key-btn" data-key="k" data-pitch="5">K</button>
-                    <button class="key-btn" data-key="l" data-pitch="6">L</button>
-                </div>
-                <div class="keyboard-row">
-                    <button class="key-btn" data-key="z" data-pitch="7">Z</button>
-                    <button class="key-btn" data-key="x" data-pitch="8">X</button>
-                    <button class="key-btn" data-key="c" data-pitch="9">C</button>
-                    <button class="key-btn" data-key="v" data-pitch="10">V</button>
-                    <button class="key-btn" data-key="b" data-pitch="11">B</button>
-                    <button class="key-btn" data-key="n" data-pitch="12">N</button>
-                    <button class="key-btn" data-key="m" data-pitch="13">M</button>
+                
+                <!-- Section 3: Chromatic Pitch Control -->
+                <div class="keyboard-section">
+                    <h4>Chromatic Pitch Control</h4>
+                    <div class="keyboard-row">
+                        <button class="key-btn" data-key="q" data-pitch="-12">Q</button>
+                        <button class="key-btn" data-key="w" data-pitch="-11">W</button>
+                        <button class="key-btn" data-key="e" data-pitch="-10">E</button>
+                        <button class="key-btn" data-key="r" data-pitch="-9">R</button>
+                        <button class="key-btn" data-key="t" data-pitch="-8">T</button>
+                        <button class="key-btn" data-key="y" data-pitch="-7">Y</button>
+                        <button class="key-btn" data-key="u" data-pitch="-6">U</button>
+                        <button class="key-btn" data-key="i" data-pitch="-5">I</button>
+                        <button class="key-btn" data-key="o" data-pitch="-4">O</button>
+                        <button class="key-btn" data-key="p" data-pitch="-3">P</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn" data-key="a" data-pitch="-2">A</button>
+                        <button class="key-btn" data-key="s" data-pitch="-1">S</button>
+                        <button class="key-btn" data-key="d" data-pitch="0">D</button>
+                        <button class="key-btn" data-key="f" data-pitch="1">F</button>
+                        <button class="key-btn" data-key="g" data-pitch="2">G</button>
+                        <button class="key-btn" data-key="h" data-pitch="3">H</button>
+                        <button class="key-btn" data-key="j" data-pitch="4">J</button>
+                        <button class="key-btn" data-key="k" data-pitch="5">K</button>
+                        <button class="key-btn" data-key="l" data-pitch="6">L</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn" data-key="z" data-pitch="7">Z</button>
+                        <button class="key-btn" data-key="x" data-pitch="8">X</button>
+                        <button class="key-btn" data-key="c" data-pitch="9">C</button>
+                        <button class="key-btn" data-key="v" data-pitch="10">V</button>
+                        <button class="key-btn" data-key="b" data-pitch="11">B</button>
+                        <button class="key-btn" data-key="n" data-pitch="12">N</button>
+                        <button class="key-btn" data-key="m" data-pitch="13">M</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -252,12 +282,12 @@
                         <input type="range" id="filterFreq" min="100" max="8000" value="2281">
                     </div>
                     <div class="slider-item compact">
-                        <label>Q Factor <span id="filterQValue">0.1</span></label>
+                        <label>Resonance <span id="filterQValue">0.1</span></label>
                         <input type="range" id="filterQ" min="0.1" max="10" value="0.1" step="0.1">
                     </div>
                     <div class="slider-item compact">
                         <label>LFO Speed <span id="lfoSpeedValue">1Hz</span></label>
-                        <input type="range" id="lfoSpeed" min="0.1" max="10" value="1" step="0.1">
+                        <input type="range" id="lfoSpeed" min="0.1" max="1000" value="1" step="0.1">
                     </div>
                     <div class="slider-item compact">
                         <label>LFO Depth <span id="lfoDepthValue">0%</span></label>
@@ -265,7 +295,7 @@
                     </div>
                     <div class="select-item">
                         <label>LFO Shape</label>
-                        <select id="lfoShape">
+                        <select id="lfoShape" class="dark-select">
                             <option value="sine">Sine</option>
                             <option value="triangle">Triangle</option>
                             <option value="sawtooth">Sawtooth</option>
@@ -529,9 +559,9 @@
                 </div>
             </div>
 
-            <!-- String Sequencer -->
+            <!-- Comb Sequencer -->
             <div class="control-panel">
-                <h3>Paraphonic String Seq</h3>
+                <h3>Comb Sequencer</h3>
                 <div class="panel-icon">
                     <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M2 12l2-8 2 8 2-8 2 8 2-8 2 8"/>
@@ -559,30 +589,38 @@
                         <input type="range" id="stringSeqDepth" min="0" max="100" value="0">
                     </div>
                     <div class="slider-item compact">
+                        <label>Wet Mix <span id="stringSeqWetMixValue">0%</span></label>
+                        <input type="range" id="stringSeqWetMix" min="0" max="100" value="0">
+                    </div>
+                    <div class="slider-item compact">
                         <label>Squeeze <span id="stringSeqSqueezeValue">0%</span></label>
                         <input type="range" id="stringSeqSqueeze" min="0" max="100" value="0">
                     </div>
-                    <div class="section-label">5-Step Sequence (Semitones)</div>
+                    <div class="slider-item compact">
+                        <label>Soft Clip <span id="combSeqSoftClipValue">0%</span></label>
+                        <input type="range" id="combSeqSoftClip" min="0" max="100" value="0">
+                    </div>
+                    <div class="section-label">5-Step Frequency Values (Hz)</div>
                     <div class="seq-steps">
                         <div class="seq-step">
-                            <label>1 <span id="stringSeqStep1Value">0</span></label>
-                            <input type="range" id="stringSeqStep1" min="-12" max="12" value="0" class="seq-step-slider">
+                            <label>1 <span id="stringSeqStep1Value">440</span></label>
+                            <input type="range" id="stringSeqStep1" min="100" max="2000" value="440" class="seq-step-slider">
                         </div>
                         <div class="seq-step">
-                            <label>2 <span id="stringSeqStep2Value">2</span></label>
-                            <input type="range" id="stringSeqStep2" min="-12" max="12" value="2" class="seq-step-slider">
+                            <label>2 <span id="stringSeqStep2Value">660</span></label>
+                            <input type="range" id="stringSeqStep2" min="100" max="2000" value="660" class="seq-step-slider">
                         </div>
                         <div class="seq-step">
-                            <label>3 <span id="stringSeqStep3Value">4</span></label>
-                            <input type="range" id="stringSeqStep3" min="-12" max="12" value="4" class="seq-step-slider">
+                            <label>3 <span id="stringSeqStep3Value">880</span></label>
+                            <input type="range" id="stringSeqStep3" min="100" max="2000" value="880" class="seq-step-slider">
                         </div>
                         <div class="seq-step">
-                            <label>4 <span id="stringSeqStep4Value">7</span></label>
-                            <input type="range" id="stringSeqStep4" min="-12" max="12" value="7" class="seq-step-slider">
+                            <label>4 <span id="stringSeqStep4Value">1100</span></label>
+                            <input type="range" id="stringSeqStep4" min="100" max="2000" value="1100" class="seq-step-slider">
                         </div>
                         <div class="seq-step">
-                            <label>5 <span id="stringSeqStep5Value">12</span></label>
-                            <input type="range" id="stringSeqStep5" min="-12" max="12" value="12" class="seq-step-slider">
+                            <label>5 <span id="stringSeqStep5Value">1320</span></label>
+                            <input type="range" id="stringSeqStep5" min="100" max="2000" value="1320" class="seq-step-slider">
                         </div>
                     </div>
                 </div>
@@ -599,7 +637,7 @@
                         <li><strong>SPACE</strong> - Start/Stop</li>
                         <li><strong>1-9</strong> - Scan through sample</li>
                         <li><strong>0</strong> - Return to start</li>
-                        <li><strong>←/→</strong> - Fine navigation</li>
+                        <li><strong>←/→</strong> - Micro navigation</li>
                     </ul>
                 </div>
                 <div class="instruction-column">
@@ -617,7 +655,7 @@
                         <li><strong>MUTE</strong> - Toggle audio mute</li>
                         <li><strong>RECORD</strong> - Record & save your realtime audio</li>
                         <li><strong>LOOP</strong> - Scrolls playhead through entire waveform</li>
-                        <li><strong>WRAP</strong> - Locks in a high frequency micro-loop with current playhead position as start-point [only works when LOOP is enabled]</li>
+                        <li><strong>WRAP</strong> - Locks in a high frequency micro-loop</li>
                     </ul>
                 </div>
             </div>
