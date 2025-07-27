@@ -1061,20 +1061,18 @@ class GranularSampler {
     
     // ENHANCED: Update LFO with extended range for filter FM
     updateLFO() {
-        this.lfoNode.frequency.value = this.lfoSpeed;
-        // Enhanced depth calculation for audio rate modulation
-        const depthMultiplier = this.lfoSpeed > 20 ? 100 : 2000; // Less depth at audio rates
-        this.lfoGainNode.gain.value = (this.lfoDepth / 100) * depthMultiplier;
-        
-        // Update waveform
-        if (this.lfoShape === 'sawtooth' || this.lfoShape === 'square') {
-            this.lfoNode.type = this.lfoShape;
-        } else if (this.lfoShape === 'triangle') {
-            this.lfoNode.type = 'triangle';
-        } else {
-            this.lfoNode.type = 'sine';
-        }
+    this.lfoNode.frequency.value = this.lfoSpeed;
+    this.lfoGainNode.gain.value = (this.lfoDepth / 100) * 2000;
+    
+    // Update waveform
+    if (this.lfoShape === 'sawtooth' || this.lfoShape === 'square') {
+        this.lfoNode.type = this.lfoShape;
+    } else if (this.lfoShape === 'triangle') {
+        this.lfoNode.type = 'triangle';
+    } else {
+        this.lfoNode.type = 'sine';
     }
+}
     
     updateVocoderMix() {
         const mix = this.vocoderMix / 100;

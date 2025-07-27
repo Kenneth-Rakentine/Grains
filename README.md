@@ -63,7 +63,7 @@ Time Stretch (0.1-4x) - Playback speed without pitch change<br>
 **FILTER & LFO**
 <br>
 Frequency (100-8000Hz) - Resonant bandpass filter center frequency<br>
-Q Factor (0.1-10) - Filter resonance/bandwidth<br>
+Resonance (0.1-10) - Filter resonance/bandwidth<br>
 LFO Speed (0.1-10Hz) - Modulation rate for filter frequency<br>
 LFO Depth (0-100%) - Modulation intensity<br>
 LFO Shape - Sine, Triangle, Sawtooth, Square waveforms<br>
@@ -100,7 +100,7 @@ Freq Shift Mix (0-100%) - Effect blend amount<br>
 <br>
 Time (10ms-5s) - Echo delay duration<br>
 Feedback (0-95%) - Echo regeneration amount<br>
-Soft Clip (0-100%) - Delay path saturation (careful with this saturation level in relation to the mix level below. can become very loud) *<br>
+Soft Clip (0-100%) - Delay path saturation<br>
 Mix (0-100%) - Wet/dry balance<br>
 
 **12-BIT REVERB**
@@ -111,24 +111,27 @@ Pre-Delay (0-100ms) - Initial reflection delay<br>
 Wet Gain (0.5-2x) - Reverb signal amplification<br>
 Mix (0-100%) - Reverb blend amount<br>
 
-**PARAPHONIC STRING SEQUENCER**
+**COMB FILTER SEQUENCER**
 <br>
-ON/OFF Toggle - Enable 4-stream paraphonic sequencer<br>
+ON/OFF Toggle - Enable 5-stream comb filter sequencer<br>
 Speed (0.5-20Hz) - Sequence clock rate<br>
 Depth (0-100%) - Sequencer effect intensity<br>
-Squeeze (0-100%) - Waveform compression for bow-like attack<br>
-5-Step Sequence - Individual pitch control (-12 to +12 semitones per step)<br>
+Wet Mix (0-100%) - Wet/dry balance for comb filtering<br>
+Squeeze (0-100%) - Waveform compression effect<br>
+Soft Clip (0-100%) - Harmonic saturation for comb filters<br>
+5-Step Sequence - Individual frequency control (100-2000Hz per step)<br>
 
 **MASTER CONTROLS**
 <br>
 Master Volume (0-200%) - Can boost gain x2 past 100% with dynamic compression<br>
+Preset Management - Save, load, and manage parameter presets<br>
 Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 
 - 
 
 ## SIGNAL FLOW
-GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → STRING SEQ → OUTPUT
+GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → OUTPUT
 
 
 

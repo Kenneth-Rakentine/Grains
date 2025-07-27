@@ -591,16 +591,16 @@ body::before {
         inset 0 2px 4px rgba(255,255,255,0.3);
 }
 
-/* Transport Bar - Single Row Layout */
+/* Transport Bar - Reorganized Layout */
 .transport-bar-container {
     display: flex;
     flex-direction: row;
-    gap: 12px;
+    gap: 20px;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     margin-bottom: 16px;
     background: var(--metal-dark);
-    padding: 16px;
+    padding: 12px 20px;
     border-radius: 12px;
     box-shadow: var(--shadow-deep);
 }
@@ -616,11 +616,7 @@ body::before {
     box-shadow: none;
 }
 
-.transport-section h4 {
-    display: none;
-}
-
-.transport-controls, .loop-controls, .volume-controls {
+.transport-controls {
     display: flex;
     flex-direction: row;
     gap: 8px;
@@ -630,11 +626,15 @@ body::before {
 .preset-controls {
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
+}
+
+.volume-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
 }
 
 .master-volume-control {
@@ -656,15 +656,12 @@ body::before {
     margin-bottom: 0;
 }
 
-/* NEW: Preset Controls Styling */
+/* Preset Controls Styling */
 .preset-controls {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-direction: row;
+    gap: 8px;
     align-items: center;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-dark);
 }
 
 .preset-btn {
@@ -674,14 +671,12 @@ body::before {
 }
 
 #presetSelect {
-    width: 100%;
-    max-width: 140px;
-    margin-bottom: 4px;
+    min-width: 140px;
 }
 
 .master-volume-control {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 8px;
     font-size: 11px;
@@ -983,9 +978,9 @@ body::before {
 
 .seq-toggle-btn {
     padding: 10px 18px;
-    background: linear-gradient(135deg, var(--metal-light) 0%, var(--metal-medium) 100%);
-    color: var(--text-primary);
-    border: 1px solid var(--border-medium);
+    background: linear-gradient(135deg, var(--teal-primary) 0%, var(--teal-secondary) 100%);
+    color: white;
+    border: 1px solid var(--teal-primary);
     border-radius: 6px;
     cursor: pointer;
     font-size: 11px;
@@ -1288,9 +1283,9 @@ button:active {
 }
 
 .play-button {
-    background: linear-gradient(135deg, var(--accent-success) 0%, #45a049 100%);
+    background: linear-gradient(135deg, var(--teal-primary) 0%, var(--teal-secondary) 100%);
     color: white;
-    border-color: var(--accent-success);
+    border-color: var(--teal-primary);
     box-shadow: 
         0 4px 8px rgba(0,0,0,0.4),
         inset 0 2px 0 rgba(255,255,255,0.15),
@@ -1310,12 +1305,12 @@ button:active {
 }
 
 .play-button:hover {
-    background: linear-gradient(135deg, #5cbf60 0%, var(--accent-success) 100%);
+    background: linear-gradient(135deg, #00a0a0 0%, var(--teal-primary) 100%);
     color: white;
     box-shadow: 
         0 4px 12px rgba(0,0,0,0.5),
         inset 0 2px 0 rgba(255,255,255,0.2),
-        0 0 12px rgba(76, 175, 80, 0.5);
+        0 0 12px var(--teal-glow);
     transform: translateY(-1px);
 }
 
@@ -1528,9 +1523,9 @@ button:active {
 
 .key-btn.space-key {
     min-width: 120px;
-    background: linear-gradient(135deg, var(--accent-success) 0%, #45a049 100%);
+    background: linear-gradient(135deg, var(--teal-primary) 0%, var(--teal-secondary) 100%);
     color: white;
-    border-color: var(--accent-success);
+    border-color: var(--teal-primary);
     font-size: 10px;
 }
 

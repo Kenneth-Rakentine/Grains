@@ -57,44 +57,38 @@
             </div>
         </div>
 
-        <!-- Transport Bar -->
-        <div class="transport-bar-container">
-            <div class="transport-section transport-controls-section">
-                <h4>Transport</h4>
-                <div class="transport-controls">
-                    <button class="play-button" id="playButton">▶ PLAY</button>
-                    <button class="record-button" id="recordButton">⬤ REC</button>
-                </div>
-            </div>
-            
-            <div class="transport-section loop-controls-section">
-                <h4>Loop Control</h4>
-                <div class="loop-controls">
-                    <button class="loop-button" id="looperToggle">↻ LOOP</button>
-                    <button id="wrapToggle" class="control-btn">&#9618; WRAP</button>
-                    <button class="reset-button" id="resetButton">⟲ RESET</button>
-                </div>
-                <!-- Preset Controls -->
-                <div class="preset-controls">
-                    <select id="presetSelect" class="dark-select">
-                        <option value="">Select Preset...</option>
-                    </select>
-                    <button id="savePresetBtn" class="preset-btn">Save</button>
-                    <button id="loadPresetBtn" class="preset-btn">Load</button>
-                </div>
-            </div>
-            
-            <div class="transport-section volume-section">
-                <h4>Master Volume</h4>
-                <div class="volume-controls">
-                    <button class="mute-button" id="muteButton">🔊 MUTE</button>
-                    <div class="master-volume-control">
-                        <label>VOL: <span id="volumeValue">70%</span></label>
-                        <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
-                    </div>
-                </div>
+       <!-- Transport Bar -->
+<div class="transport-bar-container">
+    <div class="transport-section">
+        <div class="transport-controls">
+            <button class="play-button" id="playButton">▶ PLAY</button>
+            <button class="record-button" id="recordButton">⬤ REC</button>
+            <button class="loop-button" id="looperToggle">↻ LOOP</button>
+            <button id="wrapToggle" class="control-btn">&#9618; WRAP</button>
+            <button class="reset-button" id="resetButton">⟲ RESET</button>
+        </div>
+    </div>
+    
+    <div class="transport-section">
+        <div class="preset-controls">
+            <select id="presetSelect" class="dark-select">
+                <option value="">Select Preset...</option>
+            </select>
+            <button id="savePresetBtn" class="preset-btn">Save</button>
+            <button id="loadPresetBtn" class="preset-btn">Load</button>
+        </div>
+    </div>
+    
+    <div class="transport-section">
+        <div class="volume-controls">
+            <button class="mute-button" id="muteButton">🔊 MUTE</button>
+            <div class="master-volume-control">
+                <label>VOL: <span id="volumeValue">70%</span></label>
+                <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
             </div>
         </div>
+    </div>
+</div>
 
         <!-- Signal Path Diagram -->
         <div class="signal-path-diagram">
@@ -287,7 +281,7 @@
                     </div>
                     <div class="slider-item compact">
                         <label>LFO Speed <span id="lfoSpeedValue">1Hz</span></label>
-                        <input type="range" id="lfoSpeed" min="0.1" max="1000" value="1" step="0.1">
+                       <input type="range" id="lfoSpeed" min="0.1" max="10" value="1" step="0.1">
                     </div>
                     <div class="slider-item compact">
                         <label>LFO Depth <span id="lfoDepthValue">0%</span></label>
