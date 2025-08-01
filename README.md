@@ -4,15 +4,15 @@
 **Granular Browser Sampler** 
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
-
--
+- 
+   
 
 **Video Demo**
 [Youtube](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
+-
 
-
-### Tools:
-Browser-based audio manipulation tool using WEB AUDIO API
+**Tools:**
+<span style="color:#008080;">Browser-based audio manipulation tool using WEB AUDIO API</span>
 - 
 ## Live Site Deployment:
 
@@ -22,7 +22,7 @@ OR
 
 https://kenneth-rakentine.github.io/Grains/
 
-- 
+
 ## Instructions:
 **CONTROLS**
 (use keyboard or on-screen buttons)
@@ -140,11 +140,12 @@ Preset Management - Save, load, and manage parameter presets<br>
 Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 
-- 
+
 ![image](Image/consoleIMG.png)
 <br>
 ## SIGNAL FLOW
-GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → ENVELOPE → ISOLATOR → OUTPUT
+<span style="color:#008080;">GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → ENVELOPE → ISOLATOR → OUTPUT</span>
+
 
 
 
