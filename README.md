@@ -7,13 +7,13 @@
 - 
    
 
-**Video Demo**
+**Video Demo**<br>
 [Youtube](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
 -
 
-**Tools:**
+**Tools:**<br>
 <span style="color:#008080;">Browser-based audio manipulation tool using WEB AUDIO API</span>
-- 
+
 ## Live Site Deployment:
 
 http://browsergrains.surge.sh/
@@ -23,6 +23,7 @@ OR
 https://kenneth-rakentine.github.io/Grains/
 
 
+<br>
 ## Instructions:
 **CONTROLS**
 (use keyboard or on-screen buttons)
