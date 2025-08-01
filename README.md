@@ -142,7 +142,7 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 - 
 <br>
-![ascii LOGO](Image/consoleIMG.png)
+![Console Image](https://kenneth-rakentine.github.io/Grains/consoleIMG.png)
 <br>
 ## SIGNAL FLOW
 GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → ENVELOPE → ISOLATOR → OUTPUT
