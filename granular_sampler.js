@@ -3436,7 +3436,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    console.log('🎵 GRAINS Enhanced Granular Sampler v.13 Ready!');
+    console.log('GRAINS Enhanced Granular Sampler v.13 INTIALIZED!');
     console.log('New Features:');
     console.log('- WARP button moved to WARP module');
     console.log('- WARP works independently (no LOOP dependency)');
