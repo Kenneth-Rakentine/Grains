@@ -1,4 +1,6 @@
 # GRAINS 
+
+
 **Granular Browser Sampler** 
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
@@ -132,7 +134,9 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 
 - 
-
+<br>
+![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
+<br>
 ## SIGNAL FLOW
 GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → OUTPUT
 

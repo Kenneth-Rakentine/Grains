@@ -6,8 +6,8 @@ class GranularSampler {
         this.isPlaying = false;
         this.playheadPosition = 0;
         this.loopPosition = 0;
-        this.looperEnabled = false; // Initialize LOOP to OFF
-        this.wrapEnabled = false; // Initialize WRAP to OFF
+        this.looperEnabled = false;
+        this.wrapEnabled = false;
         this.scanPosition = 0;
         this.currentPitch = 1.0;
         this.activePitchKeys = new Set();
@@ -18,22 +18,27 @@ class GranularSampler {
         this.isRecording = false;
         this.recordingDestination = null;
         
-        // Granular parameters
-        this.grainSize = 50; // ms
+        // Granular parameters with LFO mapping
+        this.grainSize = 50;
         this.density = 4;
-        this.windowScan = 0; // percentage
-        this.grainShape = 'blackman'; // blackman, hanning, down-ramp, expodec, sine
-        this.timeStretch = 1.0; // playback speed
+        this.windowScan = 0;
+        this.grainShape = 'blackman';
+        this.timeStretch = 1.0;
         
-        // Filter & LFO - ENHANCED: Extended LFO range to audio rates
+        // Filter & LFO
         this.filterNode = null;
-        this.filterFreq = 2281; // Initialize at 2281 Hz
-        this.filterQ = 0.1; // Initialize at 0.1 (now called "Resonance")
+        this.filterFreq = 2281;
+        this.filterQ = 0.1;
         this.lfoNode = null;
         this.lfoGainNode = null;
-        this.lfoSpeed = 1; // Can now go up to 1000Hz for FM-like effects
+        this.lfoSpeed = 1;
         this.lfoDepth = 0;
         this.lfoShape = 'sine';
+        
+        // NEW: Comb Seq LFO system - Each parameter gets its own LFO
+        this.combSeqEnabled = false;
+        this.combSeqLfos = new Map(); // Map of parameter name to LFO data
+        this.combSeqIndicators = new Map(); // Map of parameter name to indicator element
         
         // Vocoder (replacing formant filter bank)
         this.vocoderBands = [];
@@ -43,35 +48,50 @@ class GranularSampler {
         this.vocoderMixNode = null;
         this.vocoderDryNode = null;
         this.vocoderMix = 0;
-        this.vocoderBandGains = [1, 1, 1, 1, 1, 1, 1, 1]; // 8 bands
+        this.vocoderBandGains = [1, 1, 1, 1, 1, 1, 1, 1];
         this.vocoderFrequencies = [200, 400, 800, 1200, 1600, 2400, 3200, 4800];
         
         // Wavefolder
         this.waveShaperNode = null;
         this.wavefoldAmount = 0;
         
-        // Ring Modulator
+        // Enhanced Ring Modulator
         this.ringModNode = null;
         this.ringModSource = null;
-        this.ringModEnvNode = null;
+        this.ringModGrainSource = null;
+        this.ringModOscSource = null;
+        this.ringModNoiseSource = null;
         this.ringModMixNode = null;
         this.ringModDryNode = null;
         this.ringModMix = 0;
-        this.ringModSourceType = 'envelope'; // Initialize to envelope
-        this.ringModEnvSpeed = 1;
+        this.ringModSourceType = 'grains'; // 'grains', 'oscillator', 'noise'
+        this.ringModFreq = 440;
         
-        // Spectral Freeze & Phaser - ENHANCED: More audible phaser
+        // Enhanced Spectral Freeze & Phaser
         this.spectralFreezeNode = null;
         this.spectralFreeze = 0;
+        this.spectralResonance = 0;
+        this.spectralFeedbackNode = null;
+        this.spectralFilterNode = null;
         this.phaserNodes = [];
         this.phaserLfo = null;
         this.phaserRate = 0.5;
         this.phaserDepth = 50;
         this.phaserFeedback = 0;
-        this.phaserGain = 2.0; // Increased for better audibility
+        this.phaserGain = 2.0;
         this.phaserMixNode = null;
         this.phaserDryNode = null;
-        this.phaserWetGainNode = null; // Separate wet gain for better control
+        this.phaserWetGainNode = null;
+        
+        // NEW: WARP Module
+        this.warpNode = null;
+        this.wrapDelayNode = null;
+        this.warpRate = 20;
+        this.warpStart = 0;
+        this.warpLength = 20;
+        this.warpBuffer = null;
+        this.warpCanvas = null;
+        this.warpCtx = null;
         
         // 3D Panner
         this.pannerNode = null;
@@ -84,7 +104,7 @@ class GranularSampler {
         // Frequency Shifter (enhanced)
         this.freqShifterNode = null;
         this.freqShifterOsc = null;
-        this.freqShifterAmount = 0; // -50 to +50 Hz
+        this.freqShifterAmount = 0;
         this.freqShifterMix = 0;
         this.freqShifterWetNode = null;
         this.freqShifterDryNode = null;
@@ -97,12 +117,19 @@ class GranularSampler {
         this.isMuted = false;
         this.volumeBooster = null;
         
-        // Delay effect
-        this.delayNode = null;
-        this.feedbackNode = null;
+        // Enhanced Multi-Tap Granular Delay
+        this.delayNodes = [];
+        this.delayFeedbackNodes = [];
         this.delaySoftClipNode = null;
+        this.delayAgingNodes = [];
+        this.delayFlutterNodes = [];
         this.delayTime = 0.2;
         this.delayFeedback = 0.3;
+        this.delayTaps = 4;
+        this.delaySpread = 50;
+        this.delayDrift = 0;
+        this.delayAging = 0;
+        this.delayFlutter = 0;
         this.delaySoftClip = 0;
         this.delayMix = 0;
         this.delayWetNode = null;
@@ -121,31 +148,57 @@ class GranularSampler {
         this.reverbMix = 0;
         this.reverbImpulse = null;
         
-        // ENHANCED: Comb Filter Sequencer (was String Sequencer)
-        this.combSeqEnabled = false;
+        // Comb Filter Sequencer
         this.combSeqStreams = [];
-        this.combSeqFrequencies = [440, 660, 880, 1100, 1320]; // Hz values instead of semitones
+        this.combSeqFrequencies = [440, 660, 880, 1100, 1320];
         this.combSeqLfo = null;
         this.combSeqLfoGain = null;
         this.combSeqSpeed = 4;
         this.combSeqDepth = 0;
-        this.combSeqWetMix = 0; // NEW: Wet mix control
+        this.combSeqWetMix = 0;
         this.combSeqSqueeze = 0;
         this.combSeqCurrentStep = 0;
         this.combSeqCanvas = null;
         this.combSeqCtx = null;
         this.combSeqGainBoost = null;
-        this.combSeqWetGainNode = null; // NEW: Wet gain node
-        this.combSeqDryGainNode = null; // NEW: Dry gain node
-        this.combSeqSoftClip = 0; // NEW: Soft clip parameter
-        this.combSeqSoftClipNode = null; // NEW: Soft clip node
+        this.combSeqWetGainNode = null;
+        this.combSeqDryGainNode = null;
+        this.combSeqSoftClip = 0;
+        this.combSeqSoftClipNode = null;
         
-        // Enhanced Grain animation - bigger, blood red particles
+        // NEW: Chromatic Envelope
+        this.chromaticEnvelope = null;
+        this.envelopePoints = [
+            {x: 0, y: 0.5},
+            {x: 0.2, y: 0.8},
+            {x: 0.4, y: 0.6},
+            {x: 0.7, y: 0.9},
+            {x: 1.0, y: 0.3}
+        ];
+        this.envelopeRate = 1;
+        this.envelopeDepth = 0;
+        this.envelopeLoopEnabled = false;
+        this.envelopeCanvas = null;
+        this.envelopeCtx = null;
+        this.isDraggingEnvelope = false;
+        this.dragPointIndex = -1;
+        
+        // NEW: 3-Band Frequency Isolator
+        this.isolatorNodes = {
+            lo: { filter: null, gain: null },
+            mid: { filter: null, gain: null },
+            hi: { filter: null, gain: null }
+        };
+        this.isolatorLo = 1;
+        this.isolatorMid = 1;
+        this.isolatorHi = 1;
+        
+        // Enhanced Grain animation
         this.grainCanvas = null;
         this.grainCtx = null;
         this.grainParticles = [];
         
-        // Animated effects
+        // Visual effects
         this.logoParticles = [];
         this.fallingDust = [];
         this.glassEffects = [];
@@ -158,9 +211,9 @@ class GranularSampler {
         this.setupKeyboardControls();
         this.setupMobileKeyboard();
         this.setupGrainAnimation();
-        this.setupVisualEffects(); // NEW: Setup visual effects
+        this.setupVisualEffects();
         this.storeDefaultValues();
-        this.setupPresets(); // NEW: Setup preset management
+        this.setupPresets();
     }
 
     storeDefaultValues() {
@@ -179,13 +232,17 @@ class GranularSampler {
             vocoderBandGains: [1, 1, 1, 1, 1, 1, 1, 1],
             wavefoldAmount: 0,
             ringModMix: 0,
-            ringModSourceType: 'envelope',
-            ringModEnvSpeed: 1,
+            ringModSourceType: 'grains',
+            ringModFreq: 440,
             spectralFreeze: 0,
+            spectralResonance: 0,
             phaserRate: 0.5,
             phaserDepth: 50,
             phaserFeedback: 0,
-            phaserGain: 2.0, // Updated default
+            phaserGain: 2.0,
+            warpRate: 20,
+            warpStart: 0,
+            warpLength: 20,
             pannerXDepth: 0,
             pannerYRange: 0,
             pannerSpeed: 0.5,
@@ -194,6 +251,11 @@ class GranularSampler {
             volume: 0.7,
             delayTime: 0.2,
             delayFeedback: 0.3,
+            delayTaps: 4,
+            delaySpread: 50,
+            delayDrift: 0,
+            delayAging: 0,
+            delayFlutter: 0,
             delaySoftClip: 0,
             delayMix: 0,
             reverbSize: 0.5,
@@ -201,25 +263,31 @@ class GranularSampler {
             reverbPreDelay: 0.01,
             reverbWetGain: 1.0,
             reverbMix: 0,
-            combSeqEnabled: false, // Changed from stringSeq
+            combSeqEnabled: false,
             combSeqSpeed: 4,
             combSeqDepth: 0,
-            combSeqWetMix: 0, // NEW
+            combSeqWetMix: 0,
             combSeqSqueeze: 0,
-            combSeqSoftClip: 0, // NEW
-            combSeqFrequencies: [440, 660, 880, 1100, 1320], // Changed from semitones
+            combSeqSoftClip: 0,
+            combSeqFrequencies: [440, 660, 880, 1100, 1320],
+            envelopeRate: 1,
+            envelopeDepth: 0,
+            envelopeLoopEnabled: false,
+            isolatorLo: 1,
+            isolatorMid: 1,
+            isolatorHi: 1,
             wrapEnabled: false
         };
     }
 
-    // NEW: Setup preset management
+    // Setup preset management
     setupPresets() {
         this.presets = new Map();
         this.loadPresetsFromStorage();
         this.updatePresetSelect();
     }
 
-    // NEW: Setup visual effects
+    // Setup visual effects
     setupVisualEffects() {
         this.setupLogoParticles();
         this.setupFallingDust();
@@ -231,7 +299,6 @@ class GranularSampler {
         const logoContainer = document.getElementById('logoParticles');
         if (!logoContainer) return;
         
-        // Create 5 swirling particles
         for (let i = 0; i < 5; i++) {
             const particle = document.createElement('div');
             particle.className = 'particle';
@@ -243,7 +310,6 @@ class GranularSampler {
         const dustContainer = document.getElementById('fallingDust');
         if (!dustContainer) return;
         
-        // Create falling dust particles
         setInterval(() => {
             if (dustContainer.children.length < 20) {
                 const dust = document.createElement('div');
@@ -252,7 +318,6 @@ class GranularSampler {
                 dust.style.animationDelay = Math.random() * 2 + 's';
                 dustContainer.appendChild(dust);
                 
-                // Remove after animation
                 setTimeout(() => {
                     if (dust.parentNode) {
                         dust.parentNode.removeChild(dust);
@@ -266,21 +331,18 @@ class GranularSampler {
         const glassContainer = document.getElementById('scopeGlassEffects');
         if (!glassContainer) return;
         
-        // Add shine effect
         const shine = document.createElement('div');
         shine.className = 'glass-shine';
         glassContainer.appendChild(shine);
         
-        // Add droplets periodically
         setInterval(() => {
-            if (Math.random() < 0.1 && glassContainer.children.length < 5) { // 10% chance
+            if (Math.random() < 0.1 && glassContainer.children.length < 5) {
                 const droplet = document.createElement('div');
                 droplet.className = 'droplet';
-                droplet.style.left = Math.random() * 90 + 5 + '%'; // 5-95%
+                droplet.style.left = Math.random() * 90 + 5 + '%';
                 droplet.style.animationDelay = Math.random() * 2 + 's';
                 glassContainer.appendChild(droplet);
                 
-                // Remove after animation
                 setTimeout(() => {
                     if (droplet.parentNode) {
                         droplet.parentNode.removeChild(droplet);
@@ -291,7 +353,6 @@ class GranularSampler {
     }
 
     animateVisualEffects() {
-        // This will be called in the main animation loop
         requestAnimationFrame(() => this.animateVisualEffects());
     }
     async initAudio() {
@@ -301,7 +362,7 @@ class GranularSampler {
         this.muteGainNode = this.audioContext.createGain();
         this.muteGainNode.gain.value = 1;
         
-        // Create volume booster (compressor for 40% boost at max volume)
+        // Create volume booster
         this.volumeBooster = this.audioContext.createDynamicsCompressor();
         this.volumeBooster.threshold.value = -12;
         this.volumeBooster.knee.value = 30;
@@ -313,7 +374,7 @@ class GranularSampler {
         this.masterGainNode = this.audioContext.createGain();
         this.masterGainNode.gain.value = this.volume;
         
-        // Connect volume chain: mute -> volume -> booster -> destination
+        // Connect volume chain
         this.muteGainNode.connect(this.masterGainNode);
         this.masterGainNode.connect(this.volumeBooster);
         this.volumeBooster.connect(this.audioContext.destination);
@@ -328,7 +389,7 @@ class GranularSampler {
         this.filterNode.frequency.value = this.filterFreq;
         this.filterNode.Q.value = this.filterQ;
         
-        // ENHANCED: Create LFO for filter modulation with extended range
+        // Create LFO for filter modulation
         this.lfoNode = this.audioContext.createOscillator();
         this.lfoNode.type = 'sine';
         this.lfoNode.frequency.value = this.lfoSpeed;
@@ -337,6 +398,9 @@ class GranularSampler {
         this.lfoNode.connect(this.lfoGainNode);
         this.lfoGainNode.connect(this.filterNode.frequency);
         this.lfoNode.start();
+        
+        // NEW: Initialize Comb Seq LFO system
+        this.initCombSeqLFOSystem();
         
         // Create 8-band vocoder
         await this.initVocoder();
@@ -348,51 +412,177 @@ class GranularSampler {
         
         await this.initRingModulator();
         await this.initSpectralFreezeAndPhaser();
+        await this.initWarpModule(); // NEW
         await this.init3DPannerAndFreqShifter();
-        await this.initCombSequencer(); // CHANGED: from initStringSequencer
-        await this.initDelay();
+        await this.initEnhancedDelay(); // Enhanced multi-tap delay
         await this.initReverb();
+        await this.initCombSequencer();
+        await this.initChromaticEnvelope(); // NEW
+        await this.initFrequencyIsolator(); // NEW
         
         // Connect signal path
         this.connectAudioNodes();
     }
 
-    async initVocoder() {
-        // Create 8-band vocoder to replace formant filter bank
-        this.vocoderGainNode = this.audioContext.createGain();
-        this.vocoderGainNode.gain.value = 4.0; // Significant gain boost
+    // NEW: Initialize Comb Seq LFO System - Each parameter gets its own LFO
+    initCombSeqLFOSystem() {
+        // Define which parameters can be modulated by comb seq
+        const modulatableParams = [
+            'grainSize', 'density', 'windowScan', 'timeStretch',
+            'filterFreq', 'filterQ',
+            'vocoder1', 'vocoder2', 'vocoder3', 'vocoder4', 'vocoder5', 'vocoder6', 'vocoder7', 'vocoder8', 'vocoderMix',
+            'wavefold', 'ringModMix', 'ringModFreq',
+            'spectralFreeze', 'spectralResonance', 'phaserRate', 'phaserDepth', 'phaserFeedback', 'phaserGain',
+            'warpRate', 'warpStart', 'warpLength',
+            'pannerXDepth', 'pannerYRange', 'pannerSpeed',
+            'freqShifterAmount', 'freqShifterMix',
+            'delayTime', 'delayFeedback', 'delayTaps', 'delaySpread', 'delayDrift', 'delayAging', 'delayFlutter', 'delaySoftClip', 'delayMix',
+            'reverbSize', 'reverbDecay', 'reverbPreDelay', 'reverbWetGain', 'reverbMix',
+            'stringSeqSpeed', 'stringSeqDepth', 'stringSeqWetMix', 'stringSeqSqueeze', 'combSeqSoftClip',
+            'stringSeqStep1', 'stringSeqStep2', 'stringSeqStep3', 'stringSeqStep4', 'stringSeqStep5',
+            'envelopeRate', 'envelopeDepth',
+            'isolatorLo', 'isolatorMid', 'isolatorHi'
+        ];
         
-        // Create carrier and modulator paths
+        // Create LFO for each parameter
+        modulatableParams.forEach(paramName => {
+            const lfo = this.audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1; // Slow default
+            
+            const lfoGain = this.audioContext.createGain();
+            lfoGain.gain.value = 0; // Start inactive
+            
+            lfo.connect(lfoGain);
+            lfo.start();
+            
+            this.combSeqLfos.set(paramName, {
+                oscillator: lfo,
+                gainNode: lfoGain,
+                depth: 0,
+                active: false
+            });
+            
+            // Store indicator reference
+            const indicator = document.getElementById(paramName + 'LfoIndicator');
+            if (indicator) {
+                this.combSeqIndicators.set(paramName, indicator);
+            }
+        });
+    }
+
+    // NEW: Update Comb Seq LFO for a specific parameter
+    updateCombSeqLFO(paramName, depth = 0) {
+        const lfoData = this.combSeqLfos.get(paramName);
+        const indicator = this.combSeqIndicators.get(paramName);
+        
+        if (!lfoData) return;
+        
+        const isActive = this.combSeqEnabled && depth > 0;
+        lfoData.active = isActive;
+        lfoData.depth = depth;
+        
+        // Update LFO frequency based on comb seq speed
+        lfoData.oscillator.frequency.value = this.combSeqSpeed;
+        
+        // Update LFO depth
+        lfoData.gainNode.gain.value = isActive ? (depth / 100) * 50 : 0; // Scale depth
+        
+        // Update visual indicator
+        if (indicator) {
+            indicator.classList.toggle('active', isActive);
+        }
+        
+        // Connect LFO to the actual parameter if active
+        if (isActive) {
+            this.connectLFOToParameter(paramName, lfoData);
+        } else {
+            this.disconnectLFOFromParameter(paramName, lfoData);
+        }
+    }
+
+    // NEW: Connect LFO to actual audio parameter
+    connectLFOToParameter(paramName, lfoData) {
+        try {
+            // Disconnect any existing connections
+            this.disconnectLFOFromParameter(paramName, lfoData);
+            
+            // Connect based on parameter type
+            switch (paramName) {
+                case 'filterFreq':
+                    if (this.filterNode) {
+                        lfoData.gainNode.connect(this.filterNode.frequency);
+                    }
+                    break;
+                case 'filterQ':
+                    if (this.filterNode) {
+                        lfoData.gainNode.connect(this.filterNode.Q);
+                    }
+                    break;
+                case 'delayTime':
+                    this.delayNodes.forEach(delay => {
+                        if (delay) lfoData.gainNode.connect(delay.delayTime);
+                    });
+                    break;
+                case 'delayFeedback':
+                    this.delayFeedbackNodes.forEach(feedback => {
+                        if (feedback) lfoData.gainNode.connect(feedback.gain);
+                    });
+                    break;
+                // Add more parameter connections as needed
+            }
+        } catch (error) {
+            console.warn(`Could not connect LFO to ${paramName}:`, error);
+        }
+    }
+
+    // NEW: Disconnect LFO from parameter
+    disconnectLFOFromParameter(paramName, lfoData) {
+        try {
+            // Safely disconnect from all possible targets
+            lfoData.gainNode.disconnect();
+        } catch (error) {
+            // Ignore disconnect errors
+        }
+    }
+
+    // NEW: Toggle Comb Seq button text
+    updateCombSeqButton() {
+        const button = document.getElementById('stringSeqToggle');
+        if (button) {
+            button.textContent = this.combSeqEnabled ? 'ON' : 'OFF';
+            button.classList.toggle('active', this.combSeqEnabled);
+        }
+    }
+
+    async initVocoder() {
+        this.vocoderGainNode = this.audioContext.createGain();
+        this.vocoderGainNode.gain.value = 4.0;
+        
         this.vocoderBands = [];
         this.vocoderCarrierGains = [];
         this.vocoderModulatorEnvelopes = [];
         
         for (let i = 0; i < 8; i++) {
-            // Carrier filter (processes the main signal)
             const carrierFilter = this.audioContext.createBiquadFilter();
             carrierFilter.type = 'bandpass';
             carrierFilter.frequency.value = this.vocoderFrequencies[i];
             carrierFilter.Q.value = 8;
             
-            // Modulator filter (analyzes the modulator signal)
             const modulatorFilter = this.audioContext.createBiquadFilter();
             modulatorFilter.type = 'bandpass';
             modulatorFilter.frequency.value = this.vocoderFrequencies[i];
             modulatorFilter.Q.value = 8;
             
-            // Envelope follower for modulator
             const envelopeFollower = this.audioContext.createGain();
             envelopeFollower.gain.value = 0;
             
-            // Carrier gain controlled by envelope
             const carrierGain = this.audioContext.createGain();
             carrierGain.gain.value = this.vocoderBandGains[i];
             
-            // Band-specific gain control
             const bandGain = this.audioContext.createGain();
             bandGain.gain.value = 1;
             
-            // Connect carrier path
             carrierFilter.connect(carrierGain);
             carrierGain.connect(bandGain);
             bandGain.connect(this.vocoderGainNode);
@@ -408,7 +598,6 @@ class GranularSampler {
             this.vocoderModulatorEnvelopes.push(envelopeFollower);
         }
         
-        // Vocoder mix control
         this.vocoderMixNode = this.audioContext.createGain();
         this.vocoderDryNode = this.audioContext.createGain();
         this.vocoderMixNode.gain.value = 0;
@@ -417,52 +606,72 @@ class GranularSampler {
         this.vocoderGainNode.connect(this.vocoderMixNode);
     }
 
+    // Enhanced Ring Modulator with three sources
     async initRingModulator() {
-        // Create ring modulator
         this.ringModNode = this.audioContext.createGain();
         this.ringModNode.gain.value = 0;
         
-        // Create noise source for ring mod
+        // Create noise source
         const noiseBuffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 2, this.audioContext.sampleRate);
         const noiseData = noiseBuffer.getChannelData(0);
         for (let i = 0; i < noiseData.length; i++) {
             noiseData[i] = Math.random() * 2 - 1;
         }
         
-        const noiseSource = this.audioContext.createBufferSource();
-        noiseSource.buffer = noiseBuffer;
-        noiseSource.loop = true;
-        noiseSource.start();
+        this.ringModNoiseSource = this.audioContext.createBufferSource();
+        this.ringModNoiseSource.buffer = noiseBuffer;
+        this.ringModNoiseSource.loop = true;
+        this.ringModNoiseSource.start();
         
-        // Create envelope source for ring mod
-        this.ringModEnvNode = this.audioContext.createOscillator();
-        this.ringModEnvNode.type = 'sine';
-        this.ringModEnvNode.frequency.value = this.ringModEnvSpeed;
-        this.ringModEnvNode.start();
+        // Create oscillator source
+        this.ringModOscSource = this.audioContext.createOscillator();
+        this.ringModOscSource.type = 'sine';
+        this.ringModOscSource.frequency.value = this.ringModFreq;
+        this.ringModOscSource.start();
         
-        // Initialize with envelope instead of noise
-        this.ringModSource = this.ringModEnvNode;
+        // Grain source will be connected dynamically during grain creation
+        this.ringModGrainSource = this.audioContext.createGain();
+        this.ringModGrainSource.gain.value = 1;
+        
+        // Initialize with grain source
+        this.ringModSource = this.ringModGrainSource;
         this.ringModSource.connect(this.ringModNode.gain);
         
-        // Ring mod mix control
         this.ringModMixNode = this.audioContext.createGain();
         this.ringModDryNode = this.audioContext.createGain();
         this.ringModMixNode.gain.value = 0;
         this.ringModDryNode.gain.value = 1;
     }
 
+    // Enhanced Spectral Freeze with resonance and improved phaser
     async initSpectralFreezeAndPhaser() {
-        // Spectral Freeze (simplified using delay and feedback)
+        // Enhanced Spectral Freeze with resonance
         this.spectralFreezeNode = this.audioContext.createDelay(0.1);
         this.spectralFreezeNode.delayTime.value = 0.05;
         
-        // ENHANCED: Create 12-stage phaser with better audibility
+        // Add resonant filter for spectral coloration
+        this.spectralFilterNode = this.audioContext.createBiquadFilter();
+        this.spectralFilterNode.type = 'peaking';
+        this.spectralFilterNode.frequency.value = 1000;
+        this.spectralFilterNode.Q.value = 5;
+        this.spectralFilterNode.gain.value = 0;
+        
+        // Create feedback loop
+        this.spectralFeedbackNode = this.audioContext.createGain();
+        this.spectralFeedbackNode.gain.value = 0;
+        
+        // Connect spectral freeze chain
+        this.spectralFreezeNode.connect(this.spectralFilterNode);
+        this.spectralFilterNode.connect(this.spectralFeedbackNode);
+        this.spectralFeedbackNode.connect(this.spectralFreezeNode);
+        
+        // Create 12-stage phaser
         this.phaserNodes = [];
         for (let i = 0; i < 12; i++) {
             const allpass = this.audioContext.createBiquadFilter();
             allpass.type = 'allpass';
             allpass.frequency.value = 500 + i * 200;
-            allpass.Q.value = 8; // Increased Q for more pronounced effect
+            allpass.Q.value = 8;
             this.phaserNodes.push(allpass);
             
             if (i > 0) {
@@ -475,7 +684,6 @@ class GranularSampler {
         this.phaserLfo.type = 'sine';
         this.phaserLfo.frequency.value = this.phaserRate;
         
-        // Connect LFO to phaser stages
         const phaserLfoGain = this.audioContext.createGain();
         phaserLfoGain.gain.value = 0;
         this.phaserLfo.connect(phaserLfoGain);
@@ -486,30 +694,129 @@ class GranularSampler {
         
         this.phaserLfo.start();
         
-        // ENHANCED: Phaser mix and feedback with separate wet gain
+        // Phaser mix and feedback
         this.phaserMixNode = this.audioContext.createGain();
         this.phaserDryNode = this.audioContext.createGain();
-        this.phaserWetGainNode = this.audioContext.createGain(); // NEW: Separate wet gain
+        this.phaserWetGainNode = this.audioContext.createGain();
         this.phaserMixNode.gain.value = 0;
         this.phaserDryNode.gain.value = 1;
         this.phaserWetGainNode.gain.value = 1;
         
-        // Phaser gain boost with harmonic saturation
         this.phaserGainNode = this.audioContext.createGain();
         this.phaserGainNode.gain.value = this.phaserGain;
         
-        // Harmonic saturation waveshaper
         this.phaserSaturation = this.audioContext.createWaveShaper();
         this.phaserSaturation.curve = this.makeHarmonicSaturationCurve();
         this.phaserSaturation.oversample = '2x';
         
-        // ENHANCED: Connect phaser chain with better routing
         if (this.phaserNodes.length > 0) {
             this.phaserNodes[this.phaserNodes.length - 1].connect(this.phaserWetGainNode);
             this.phaserWetGainNode.connect(this.phaserGainNode);
             this.phaserGainNode.connect(this.phaserSaturation);
             this.phaserSaturation.connect(this.phaserMixNode);
         }
+    }
+    // NEW: Initialize WARP Module
+    async initWarpModule() {
+        // Create delay node for micro-loop
+        this.wrapDelayNode = this.audioContext.createDelay(0.02); // 20ms max
+        this.wrapDelayNode.delayTime.value = this.warpLength / 1000; // Convert ms to seconds
+        
+        // Create feedback for ping-pong effect
+        this.warpFeedbackNode = this.audioContext.createGain();
+        this.warpFeedbackNode.gain.value = 0.8; // High feedback for sustained loop
+        
+        // Create gain node for warp effect
+        this.warpGainNode = this.audioContext.createGain();
+        this.warpGainNode.gain.value = 0; // Start disabled
+        
+        // Create rate control using oscillator
+        this.warpRateOsc = this.audioContext.createOscillator();
+        this.warpRateOsc.type = 'square';
+        this.warpRateOsc.frequency.value = this.warpRate;
+        
+        this.warpRateGain = this.audioContext.createGain();
+        this.warpRateGain.gain.value = 0;
+        
+        this.warpRateOsc.connect(this.warpRateGain);
+        this.warpRateOsc.start();
+        
+        // Connect warp chain
+        this.wrapDelayNode.connect(this.warpFeedbackNode);
+        this.warpFeedbackNode.connect(this.wrapDelayNode); // Feedback loop
+        this.wrapDelayNode.connect(this.warpGainNode);
+        
+        // Setup canvas for visualization
+        this.setupWarpVisualization();
+    }
+
+    // NEW: Setup WARP visualization
+    setupWarpVisualization() {
+        this.warpCanvas = document.getElementById('warpCanvas');
+        if (this.warpCanvas) {
+            this.warpCtx = this.warpCanvas.getContext('2d');
+            this.animateWarpDisplay();
+        }
+    }
+
+    // NEW: Animate WARP display
+    animateWarpDisplay() {
+        if (!this.warpCtx || !this.wrapEnabled) {
+            requestAnimationFrame(() => this.animateWarpDisplay());
+            return;
+        }
+        
+        const canvas = this.warpCanvas;
+        const ctx = this.warpCtx;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 45;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (this.wrapEnabled && this.looperEnabled) {
+            const time = this.audioContext.currentTime;
+            
+            // Draw loop visualization
+            ctx.strokeStyle = '#008080';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Draw waveform around circle
+            for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+                const t = (angle / (Math.PI * 2)) * this.warpLength + time * this.warpRate;
+                const wave = Math.sin(t * 10) * 0.3;
+                const x = centerX + Math.cos(angle) * (radius + wave * 10);
+                const y = centerY + Math.sin(angle) * (radius + wave * 10);
+                
+                if (angle === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Add glow effect
+            ctx.shadowColor = '#008080';
+            ctx.shadowBlur = 4;
+            ctx.stroke();
+            
+            // Draw start point indicator
+            const startAngle = (this.warpStart / this.warpLength) * Math.PI * 2;
+            const startX = centerX + Math.cos(startAngle) * radius;
+            const startY = centerY + Math.sin(startAngle) * radius;
+            
+            ctx.fillStyle = '#ff4444';
+            ctx.beginPath();
+            ctx.arc(startX, startY, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        requestAnimationFrame(() => this.animateWarpDisplay());
     }
 
     async init3DPannerAndFreqShifter() {
@@ -569,177 +876,133 @@ class GranularSampler {
         this.freqShifterNode = this.audioContext.createGain();
         this.freqShifterNode.gain.value = 0;
         
-        // Gain boost for frequency shifter audibility
         this.freqShifterGainBoost = this.audioContext.createGain();
-        this.freqShifterGainBoost.gain.value = 3.0; // 3x boost
+        this.freqShifterGainBoost.gain.value = 3.0;
         
         this.freqShifterOsc.connect(this.freqShifterNode.gain);
         
-        // Frequency shifter mix control
         this.freqShifterWetNode = this.audioContext.createGain();
         this.freqShifterDryNode = this.audioContext.createGain();
         this.freqShifterWetNode.gain.value = 0;
         this.freqShifterDryNode.gain.value = 1;
     }
-    // ENHANCED: Comb Filter Sequencer (replaces String Sequencer) with soft clip
-    async initCombSequencer() {
-        // Create LFO for sequencer clock
-        this.combSeqLfo = this.audioContext.createOscillator();
-        this.combSeqLfo.type = 'sine';
-        this.combSeqLfo.frequency.value = this.combSeqSpeed;
-        
-        this.combSeqLfoGain = this.audioContext.createGain();
-        this.combSeqLfoGain.gain.value = 0; // Starts disabled
-        
-        // Gain boost for comb sequencer audibility
-        this.combSeqGainBoost = this.audioContext.createGain();
-        this.combSeqGainBoost.gain.value = 3.0; // 3x boost to make audible
-        
-        // NEW: Soft clip node for comb sequencer
-        this.combSeqSoftClipNode = this.audioContext.createWaveShaper();
-        this.combSeqSoftClipNode.curve = this.makeSoftClipCurve(0);
-        this.combSeqSoftClipNode.oversample = '2x';
-        
-        // NEW: Wet/Dry mix controls
-        this.combSeqWetGainNode = this.audioContext.createGain();
-        this.combSeqDryGainNode = this.audioContext.createGain();
-        this.combSeqWetGainNode.gain.value = 0; // Start with dry signal
-        this.combSeqDryGainNode.gain.value = 1;
-        
-        this.combSeqLfo.connect(this.combSeqLfoGain);
-        this.combSeqLfo.start();
-        
-        // Create 5 comb filter streams with frequency-based processing
-        this.combSeqStreams = [];
-        for (let i = 0; i < 5; i++) {
-            const stream = {
-                // Comb filter components
-                delayNode: this.audioContext.createDelay(0.1),
-                feedbackGain: this.audioContext.createGain(),
-                outputGain: this.audioContext.createGain(),
-                mixGain: this.audioContext.createGain(),
-                currentStep: i, // Offset each stream
-                lastTriggerTime: 0,
-                frequency: this.combSeqFrequencies[i]
-            };
-            
-            // Configure comb filter
-            const delayTime = 1 / stream.frequency; // Delay time based on frequency
-            stream.delayNode.delayTime.value = Math.min(delayTime, 0.1); // Cap at 100ms
-            stream.feedbackGain.gain.value = 0.7; // Feedback amount
-            stream.outputGain.gain.value = 0.3; // Output level
-            stream.mixGain.gain.value = 0; // Start muted
-            
-            // Connect comb filter: input -> delay -> feedback -> delay (loop)
-            //                              |-> output
-            stream.delayNode.connect(stream.feedbackGain);
-            stream.feedbackGain.connect(stream.delayNode);
-            stream.delayNode.connect(stream.outputGain);
-            stream.outputGain.connect(stream.mixGain);
-            stream.mixGain.connect(this.combSeqGainBoost);
-            
-            this.combSeqStreams.push(stream);
-        }
-        
-        // Connect through soft clip then wet gain
-        this.combSeqGainBoost.connect(this.combSeqSoftClipNode);
-        this.combSeqSoftClipNode.connect(this.combSeqWetGainNode);
-        
-        // Setup visualization canvas
-        this.setupCombSeqVisualization();
-    }
 
-    setupCombSeqVisualization() {
-        this.combSeqCanvas = document.getElementById('stringSeqWave'); // Reuse existing canvas
-        if (this.combSeqCanvas) {
-            this.combSeqCtx = this.combSeqCanvas.getContext('2d');
-            this.animateCombSeqWave();
+    // NEW: Enhanced Multi-Tap Granular Delay
+    async initEnhancedDelay() {
+        this.delayNodes = [];
+        this.delayFeedbackNodes = [];
+        this.delayAgingNodes = [];
+        this.delayFlutterNodes = [];
+        
+        // Create multiple delay taps
+        for (let i = 0; i < 8; i++) {
+            // Delay node
+            const delayNode = this.audioContext.createDelay(5.0);
+            delayNode.delayTime.value = this.delayTime * (i + 1) / 8;
+            
+            // Feedback node
+            const feedbackNode = this.audioContext.createGain();
+            feedbackNode.gain.value = this.delayFeedback * (0.8 - i * 0.1); // Decreasing feedback
+            
+            // Aging filter (bit reduction simulation)
+            const agingFilter = this.audioContext.createBiquadFilter();
+            agingFilter.type = 'lowpass';
+            agingFilter.frequency.value = 20000; // Start with full bandwidth
+            agingFilter.Q.value = 0.7;
+            
+            // Flutter (wow and flutter simulation)
+            const flutterLfo = this.audioContext.createOscillator();
+            flutterLfo.type = 'sine';
+            flutterLfo.frequency.value = 0.5 + Math.random() * 2; // Random flutter rate
+            
+            const flutterGain = this.audioContext.createGain();
+            flutterGain.gain.value = 0;
+            
+            flutterLfo.connect(flutterGain);
+            flutterGain.connect(delayNode.delayTime);
+            flutterLfo.start();
+            
+            // Connect delay chain
+            delayNode.connect(agingFilter);
+            agingFilter.connect(feedbackNode);
+            feedbackNode.connect(delayNode); // Feedback loop
+            
+            this.delayNodes.push(delayNode);
+            this.delayFeedbackNodes.push(feedbackNode);
+            this.delayAgingNodes.push(agingFilter);
+            this.delayFlutterNodes.push({
+                lfo: flutterLfo,
+                gain: flutterGain
+            });
         }
-    }
-
-    animateCombSeqWave() {
-        if (!this.combSeqCtx || !this.combSeqEnabled) {
-            requestAnimationFrame(() => this.animateCombSeqWave());
-            return;
-        }
-        
-        const canvas = this.combSeqCanvas;
-        const ctx = this.combSeqCtx;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (this.combSeqDepth > 0) {
-            const time = this.audioContext.currentTime;
-            const width = canvas.width;
-            const height = canvas.height;
-            const centerY = height / 2;
-            
-            // CHANGED: Deep teal color for comb seq display
-            ctx.strokeStyle = '#008080';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            
-            // Draw comb filter frequency response visualization
-            for (let x = 0; x < width; x++) {
-                const t = (x / width) * 4 + time * this.combSeqSpeed;
-                let wave = 0;
-                
-                // Combine frequencies from active steps
-                for (let i = 0; i < 5; i++) {
-                    const freq = this.combSeqFrequencies[i];
-                    const amplitude = this.combSeqDepth / 100 / 5; // Divide by number of steps
-                    wave += Math.sin(t * freq * Math.PI * 2 / 1000) * amplitude;
-                }
-                
-                // Apply squeeze effect
-                if (this.combSeqSqueeze > 0) {
-                    const squeeze = 1 + this.combSeqSqueeze * 9; // 1-10x compression
-                    wave = Math.tanh(wave * squeeze) / Math.tanh(squeeze);
-                }
-                
-                const y = centerY + wave * (height * 0.3);
-                
-                if (x === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            
-            ctx.stroke();
-            
-            // Add glow effect with teal color
-            ctx.shadowColor = '#008080';
-            ctx.shadowBlur = 4;
-            ctx.stroke();
-        }
-        
-        requestAnimationFrame(() => this.animateCombSeqWave());
-    }
-
-    async initDelay() {
-        // Create delay effect
-        this.delayNode = this.audioContext.createDelay(5.0);
-        this.delayNode.delayTime.value = this.delayTime;
-        
-        this.feedbackNode = this.audioContext.createGain();
-        this.feedbackNode.gain.value = this.delayFeedback;
         
         // Soft clipper for delay
         this.delaySoftClipNode = this.audioContext.createWaveShaper();
         this.delaySoftClipNode.curve = this.makeSoftClipCurve(0);
         this.delaySoftClipNode.oversample = '2x';
         
+        // Delay mix controls
         this.delayWetNode = this.audioContext.createGain();
         this.delayWetNode.gain.value = this.delayMix;
         
         this.delayDryNode = this.audioContext.createGain();
         this.delayDryNode.gain.value = 1 - this.delayMix;
+        
+        // Connect all delay taps to wet output
+        this.delayNodes.forEach(delayNode => {
+            delayNode.connect(this.delaySoftClipNode);
+        });
+        this.delaySoftClipNode.connect(this.delayWetNode);
+    }
+
+    // NEW: Update enhanced delay parameters
+    updateEnhancedDelay() {
+        // Update delay times with spread and drift
+        this.delayNodes.forEach((delayNode, i) => {
+            let baseTime = this.delayTime * (i + 1) / this.delayTaps;
+            
+            // Apply spread
+            const spreadMultiplier = 1 + (this.delaySpread / 100) * (i / this.delayTaps);
+            baseTime *= spreadMultiplier;
+            
+            // Apply drift (random variation)
+            if (this.delayDrift > 0) {
+                const driftAmount = (this.delayDrift / 100) * 0.1; // Max 10% drift
+                const drift = (Math.random() - 0.5) * driftAmount;
+                baseTime *= (1 + drift);
+            }
+            
+            delayNode.delayTime.value = Math.min(baseTime, 5.0);
+        });
+        
+        // Update feedback
+        this.delayFeedbackNodes.forEach((feedbackNode, i) => {
+            feedbackNode.gain.value = this.delayFeedback * (0.9 - i * 0.1);
+        });
+        
+        // Update aging (tape degradation)
+        this.delayAgingNodes.forEach((agingFilter, i) => {
+            const agingAmount = this.delayAging / 100;
+            // Reduce frequency and sample rate simulation
+            const maxFreq = 20000 * (1 - agingAmount * 0.8);
+            agingFilter.frequency.value = Math.max(maxFreq, 1000);
+        });
+        
+        // Update flutter
+        this.delayFlutterNodes.forEach((flutter, i) => {
+            const flutterAmount = this.delayFlutter / 100;
+            flutter.gain.gain.value = flutterAmount * 0.002; // Subtle flutter
+        });
+        
+        // Update soft clip
+        this.delaySoftClipNode.curve = this.makeSoftClipCurve(this.delaySoftClip / 100);
+        
+        // Update mix
+        this.delayWetNode.gain.value = this.delayMix;
+        this.delayDryNode.gain.value = 1 - this.delayMix;
     }
 
     async initReverb() {
-        // Create reverb
         this.reverbNode = this.audioContext.createConvolver();
         this.reverbPreDelayNode = this.audioContext.createDelay(0.1);
         this.reverbPreDelayNode.delayTime.value = this.reverbPreDelay;
@@ -755,9 +1018,386 @@ class GranularSampler {
         this.generateReverbImpulse();
     }
 
+    async initCombSequencer() {
+        this.combSeqLfo = this.audioContext.createOscillator();
+        this.combSeqLfo.type = 'sine';
+        this.combSeqLfo.frequency.value = this.combSeqSpeed;
+        
+        this.combSeqLfoGain = this.audioContext.createGain();
+        this.combSeqLfoGain.gain.value = 0;
+        
+        this.combSeqGainBoost = this.audioContext.createGain();
+        this.combSeqGainBoost.gain.value = 3.0;
+        
+        this.combSeqSoftClipNode = this.audioContext.createWaveShaper();
+        this.combSeqSoftClipNode.curve = this.makeSoftClipCurve(0);
+        this.combSeqSoftClipNode.oversample = '2x';
+        
+        this.combSeqWetGainNode = this.audioContext.createGain();
+        this.combSeqDryGainNode = this.audioContext.createGain();
+        this.combSeqWetGainNode.gain.value = 0;
+        this.combSeqDryGainNode.gain.value = 1;
+        
+        this.combSeqLfo.connect(this.combSeqLfoGain);
+        this.combSeqLfo.start();
+        
+        this.combSeqStreams = [];
+        for (let i = 0; i < 5; i++) {
+            const stream = {
+                delayNode: this.audioContext.createDelay(0.1),
+                feedbackGain: this.audioContext.createGain(),
+                outputGain: this.audioContext.createGain(),
+                mixGain: this.audioContext.createGain(),
+                currentStep: i,
+                lastTriggerTime: 0,
+                frequency: this.combSeqFrequencies[i]
+            };
+            
+            const delayTime = 1 / stream.frequency;
+            stream.delayNode.delayTime.value = Math.min(delayTime, 0.1);
+            stream.feedbackGain.gain.value = 0.7;
+            stream.outputGain.gain.value = 0.3;
+            stream.mixGain.gain.value = 0;
+            
+            stream.delayNode.connect(stream.feedbackGain);
+            stream.feedbackGain.connect(stream.delayNode);
+            stream.delayNode.connect(stream.outputGain);
+            stream.outputGain.connect(stream.mixGain);
+            stream.mixGain.connect(this.combSeqGainBoost);
+            
+            this.combSeqStreams.push(stream);
+        }
+        
+        this.combSeqGainBoost.connect(this.combSeqSoftClipNode);
+        this.combSeqSoftClipNode.connect(this.combSeqWetGainNode);
+        
+        this.setupCombSeqVisualization();
+    }
+
+    setupCombSeqVisualization() {
+        this.combSeqCanvas = document.getElementById('stringSeqWave');
+        if (this.combSeqCanvas) {
+            this.combSeqCtx = this.combSeqCanvas.getContext('2d');
+            this.animateCombSeqWave();
+        }
+    }
+
+    animateCombSeqWave() {
+        if (!this.combSeqCtx || !this.combSeqEnabled) {
+            requestAnimationFrame(() => this.animateCombSeqWave());
+            return;
+        }
+        
+        const canvas = this.combSeqCanvas;
+        const ctx = this.combSeqCtx;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (this.combSeqDepth > 0) {
+            const time = this.audioContext.currentTime;
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+            
+            ctx.strokeStyle = '#008080';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let x = 0; x < width; x++) {
+                const t = (x / width) * 4 + time * this.combSeqSpeed;
+                let wave = 0;
+                
+                for (let i = 0; i < 5; i++) {
+                    const freq = this.combSeqFrequencies[i];
+                    const amplitude = this.combSeqDepth / 100 / 5;
+                    wave += Math.sin(t * freq * Math.PI * 2 / 1000) * amplitude;
+                }
+                
+                if (this.combSeqSqueeze > 0) {
+                    const squeeze = 1 + this.combSeqSqueeze * 9;
+                    wave = Math.tanh(wave * squeeze) / Math.tanh(squeeze);
+                }
+                
+                const y = centerY + wave * (height * 0.3);
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            ctx.shadowColor = '#008080';
+            ctx.shadowBlur = 4;
+            ctx.stroke();
+        }
+        
+        requestAnimationFrame(() => this.animateCombSeqWave());
+    }
+
+    // NEW: Initialize Chromatic Envelope
+    async initChromaticEnvelope() {
+        // Create envelope follower oscillator
+        this.chromaticEnvelope = this.audioContext.createOscillator();
+        this.chromaticEnvelope.type = 'sine';
+        this.chromaticEnvelope.frequency.value = this.envelopeRate;
+        
+        this.envelopeGainNode = this.audioContext.createGain();
+        this.envelopeGainNode.gain.value = 0;
+        
+        this.chromaticEnvelope.connect(this.envelopeGainNode);
+        this.chromaticEnvelope.start();
+        
+        // Setup canvas for envelope editing
+        this.setupEnvelopeCanvas();
+    }
+
+    // NEW: Setup Envelope Canvas
+    setupEnvelopeCanvas() {
+        this.envelopeCanvas = document.getElementById('envelopeCanvas');
+        if (!this.envelopeCanvas) return;
+        
+        this.envelopeCtx = this.envelopeCanvas.getContext('2d');
+        
+        // Add mouse event listeners for envelope editing
+        this.envelopeCanvas.addEventListener('mousedown', (e) => this.startEnvelopeDrag(e));
+        this.envelopeCanvas.addEventListener('mousemove', (e) => this.dragEnvelope(e));
+        this.envelopeCanvas.addEventListener('mouseup', () => this.endEnvelopeDrag());
+        this.envelopeCanvas.addEventListener('mouseleave', () => this.endEnvelopeDrag());
+        
+        // Touch events for mobile
+        this.envelopeCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            this.startEnvelopeDrag(mouseEvent);
+        });
+        
+        this.envelopeCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            this.dragEnvelope(mouseEvent);
+        });
+        
+        this.envelopeCanvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.endEnvelopeDrag();
+        });
+        
+        this.animateEnvelope();
+    }
+
+    // NEW: Envelope editing functions
+    startEnvelopeDrag(e) {
+        const rect = this.envelopeCanvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = 1 - (e.clientY - rect.top) / rect.height;
+        
+        // Find closest point
+        let closestIndex = 0;
+        let closestDistance = Infinity;
+        
+        this.envelopePoints.forEach((point, index) => {
+            const distance = Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
+            if (distance < closestDistance && distance < 0.1) {
+                closestDistance = distance;
+                closestIndex = index;
+            }
+        });
+        
+        if (closestDistance < 0.1) {
+            this.isDraggingEnvelope = true;
+            this.dragPointIndex = closestIndex;
+        }
+    }
+
+    dragEnvelope(e) {
+        if (!this.isDraggingEnvelope || this.dragPointIndex < 0) return;
+        
+        const rect = this.envelopeCanvas.getBoundingClientRect();
+        const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+        
+        // Don't allow moving first and last points horizontally
+        if (this.dragPointIndex === 0 || this.dragPointIndex === this.envelopePoints.length - 1) {
+            this.envelopePoints[this.dragPointIndex].y = y;
+        } else {
+            this.envelopePoints[this.dragPointIndex].x = x;
+            this.envelopePoints[this.dragPointIndex].y = y;
+            
+            // Keep points sorted by x
+            this.envelopePoints.sort((a, b) => a.x - b.x);
+            
+            // Find new index after sorting
+            this.dragPointIndex = this.envelopePoints.findIndex(point => 
+                Math.abs(point.x - x) < 0.01 && Math.abs(point.y - y) < 0.01
+            );
+        }
+    }
+
+    endEnvelopeDrag() {
+        this.isDraggingEnvelope = false;
+        this.dragPointIndex = -1;
+    }
+
+    // NEW: Animate envelope display
+    animateEnvelope() {
+        if (!this.envelopeCtx) {
+            requestAnimationFrame(() => this.animateEnvelope());
+            return;
+        }
+        
+        const canvas = this.envelopeCanvas;
+        const ctx = this.envelopeCtx;
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Draw grid
+        ctx.strokeStyle = 'rgba(0, 128, 128, 0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 10; i++) {
+            const x = (i / 10) * width;
+            const y = (i / 10) * height;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        
+        // Draw envelope curve
+        ctx.strokeStyle = '#008080';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        for (let x = 0; x < width; x++) {
+            const t = x / width;
+            const y = this.interpolateEnvelope(t);
+            const canvasY = height - (y * height);
+            
+            if (x === 0) {
+                ctx.moveTo(x, canvasY);
+            } else {
+                ctx.lineTo(x, canvasY);
+            }
+        }
+        
+        ctx.stroke();
+        
+        // Draw control points
+        ctx.fillStyle = '#ff4444';
+        this.envelopePoints.forEach(point => {
+            const x = point.x * width;
+            const y = height - (point.y * height);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        
+        // Show current position if looping
+        if (this.envelopeLoopEnabled && this.envelopeDepth > 0) {
+            const time = this.audioContext.currentTime;
+            const loopPos = (time * this.envelopeRate) % 1;
+            const x = loopPos * width;
+            
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        
+        requestAnimationFrame(() => this.animateEnvelope());
+    }
+
+    // NEW: Interpolate envelope value at time t (0-1)
+    interpolateEnvelope(t) {
+        if (this.envelopePoints.length < 2) return 0.5;
+        
+        // Find surrounding points
+        let leftPoint = this.envelopePoints[0];
+        let rightPoint = this.envelopePoints[this.envelopePoints.length - 1];
+        
+        for (let i = 0; i < this.envelopePoints.length - 1; i++) {
+            if (t >= this.envelopePoints[i].x && t <= this.envelopePoints[i + 1].x) {
+                leftPoint = this.envelopePoints[i];
+                rightPoint = this.envelopePoints[i + 1];
+                break;
+            }
+        }
+        
+        // Linear interpolation
+        if (leftPoint.x === rightPoint.x) return leftPoint.y;
+        
+        const ratio = (t - leftPoint.x) / (rightPoint.x - leftPoint.x);
+        return leftPoint.y + (rightPoint.y - leftPoint.y) * ratio;
+    }
+
+    // NEW: Initialize 3-Band Frequency Isolator
+    async initFrequencyIsolator() {
+        // Low band (20Hz - 250Hz)
+        this.isolatorNodes.lo.filter = this.audioContext.createBiquadFilter();
+        this.isolatorNodes.lo.filter.type = 'lowpass';
+        this.isolatorNodes.lo.filter.frequency.value = 250;
+        this.isolatorNodes.lo.filter.Q.value = 0.7;
+        
+        this.isolatorNodes.lo.gain = this.audioContext.createGain();
+        this.isolatorNodes.lo.gain.gain.value = this.isolatorLo;
+        
+        // Mid band (250Hz - 4kHz)
+        this.isolatorNodes.mid.filter = this.audioContext.createBiquadFilter();
+        this.isolatorNodes.mid.filter.type = 'bandpass';
+        this.isolatorNodes.mid.filter.frequency.value = 1000;
+        this.isolatorNodes.mid.filter.Q.value = 0.5;
+        
+        this.isolatorNodes.mid.gain = this.audioContext.createGain();
+        this.isolatorNodes.mid.gain.gain.value = this.isolatorMid;
+        
+        // High band (4kHz+)
+        this.isolatorNodes.hi.filter = this.audioContext.createBiquadFilter();
+        this.isolatorNodes.hi.filter.type = 'highpass';
+        this.isolatorNodes.hi.filter.frequency.value = 4000;
+        this.isolatorNodes.hi.filter.Q.value = 0.7;
+        
+        this.isolatorNodes.hi.gain = this.audioContext.createGain();
+        this.isolatorNodes.hi.gain.gain.value = this.isolatorHi;
+        
+        // Connect filter chains
+        this.isolatorNodes.lo.filter.connect(this.isolatorNodes.lo.gain);
+        this.isolatorNodes.mid.filter.connect(this.isolatorNodes.mid.gain);
+        this.isolatorNodes.hi.filter.connect(this.isolatorNodes.hi.gain);
+        
+        // Create output summing node
+        this.isolatorOutputNode = this.audioContext.createGain();
+        this.isolatorOutputNode.gain.value = 1;
+        
+        this.isolatorNodes.lo.gain.connect(this.isolatorOutputNode);
+        this.isolatorNodes.mid.gain.connect(this.isolatorOutputNode);
+        this.isolatorNodes.hi.gain.connect(this.isolatorOutputNode);
+    }
+
     connectAudioNodes() {
-        // ENHANCED: Signal path with comb sequencer
-        // Grains → Filter → Vocoder → Wavefolder → Ring Mod → Spectral Freeze → Phaser → 3D Panner → Freq Shifter → Delay → Reverb → Comb Seq → Mute → Master
+        // Enhanced signal path with new modules
+        // Grains → Filter → Vocoder → Wavefolder → Ring Mod → Spectral Freeze → Phaser → WARP → 3D Panner → Freq Shifter → Delay → Reverb → Comb Seq → Envelope → Isolator → Output
         
         // Filter to vocoder routing
         this.filterNode.connect(this.vocoderDryNode);
@@ -783,27 +1423,29 @@ class GranularSampler {
         this.spectralFreezeNode.connect(this.phaserDryNode);
         this.spectralFreezeNode.connect(this.phaserNodes[0]);
         
-        // Phaser to 3D panner
-        this.phaserDryNode.connect(this.pannerNode);
-        this.phaserMixNode.connect(this.pannerNode);
+        // Phaser to WARP (NEW)
+        this.phaserDryNode.connect(this.wrapDelayNode);
+        this.phaserMixNode.connect(this.wrapDelayNode);
         
-        // 3D panner to frequency shifter (with gain boost)
+        // WARP to 3D panner
+        this.wrapDelayNode.connect(this.pannerNode);
+        this.warpGainNode.connect(this.pannerNode); // Warp effect output
+        
+        // 3D panner to frequency shifter
         this.pannerNode.connect(this.freqShifterDryNode);
         this.pannerNode.connect(this.freqShifterNode);
         this.freqShifterNode.connect(this.freqShifterGainBoost);
         this.freqShifterGainBoost.connect(this.freqShifterWetNode);
         
-        // Frequency shifter to delay
+        // Frequency shifter to enhanced delay
         this.freqShifterDryNode.connect(this.delayDryNode);
-        this.freqShifterDryNode.connect(this.delayNode);
         this.freqShifterWetNode.connect(this.delayDryNode);
-        this.freqShifterWetNode.connect(this.delayNode);
         
-        // Delay chain
-        this.delayNode.connect(this.delaySoftClipNode);
-        this.delaySoftClipNode.connect(this.delayWetNode);
-        this.delaySoftClipNode.connect(this.feedbackNode);
-        this.feedbackNode.connect(this.delayNode);
+        // Connect to all delay taps
+        this.delayNodes.forEach(delayNode => {
+            this.freqShifterDryNode.connect(delayNode);
+            this.freqShifterWetNode.connect(delayNode);
+        });
         
         // Delay to reverb
         this.delayDryNode.connect(this.reverbDryNode);
@@ -816,21 +1458,28 @@ class GranularSampler {
         this.reverbNode.connect(this.reverbWetGainNode);
         this.reverbWetGainNode.connect(this.reverbWetNode);
         
-        // ENHANCED: Reverb to comb sequencer (wet/dry mix)
+        // Reverb to comb sequencer
         this.reverbDryNode.connect(this.combSeqDryGainNode);
         this.reverbWetNode.connect(this.combSeqDryGainNode);
         
         // Connect comb filter inputs
-        if (this.combSeqEnabled && this.combSeqStreams.length > 0) {
+        if (this.combSeqStreams.length > 0) {
             this.combSeqStreams.forEach(stream => {
                 this.reverbDryNode.connect(stream.delayNode);
                 this.reverbWetNode.connect(stream.delayNode);
             });
         }
         
-        // Final mix to mute control
-        this.combSeqDryGainNode.connect(this.muteGainNode);
-        this.combSeqWetGainNode.connect(this.muteGainNode);
+        // Comb seq to isolator (NEW)
+        this.combSeqDryGainNode.connect(this.isolatorNodes.lo.filter);
+        this.combSeqDryGainNode.connect(this.isolatorNodes.mid.filter);
+        this.combSeqDryGainNode.connect(this.isolatorNodes.hi.filter);
+        this.combSeqWetGainNode.connect(this.isolatorNodes.lo.filter);
+        this.combSeqWetGainNode.connect(this.isolatorNodes.mid.filter);
+        this.combSeqWetGainNode.connect(this.isolatorNodes.hi.filter);
+        
+        // Final isolator output to mute control
+        this.isolatorOutputNode.connect(this.muteGainNode);
     }
 
     makeWavefolderCurve(amount) {
@@ -845,11 +1494,9 @@ class GranularSampler {
                 const foldFactor = 1 + amount * 4;
                 curve[i] = Math.tanh(x * foldFactor) / Math.tanh(foldFactor);
                 
-                // Add harmonics
                 const harmonics = Math.sin(x * foldFactor * 3) * 0.1 * amount;
                 curve[i] += harmonics;
                 
-                // Normalize
                 curve[i] = Math.max(-1, Math.min(1, curve[i]));
             }
         }
@@ -880,14 +1527,13 @@ class GranularSampler {
         
         for (let i = 0; i < samples; i++) {
             const x = (i * 2) / samples - 1;
-            // Harmonic saturation with tube-like characteristics
             curve[i] = Math.tanh(x * 2) * 0.8 + Math.sin(x * Math.PI) * 0.1;
             curve[i] = Math.max(-1, Math.min(1, curve[i]));
         }
         
         return curve;
     }
-    // Enhanced grain envelope function with sine wave
+
     getGrainEnvelope(shape, length) {
         const envelope = new Float32Array(length);
         
@@ -926,7 +1572,7 @@ class GranularSampler {
                 }
                 break;
                 
-            default: // blackman
+            default:
                 for (let i = 0; i < length; i++) {
                     const n = i / (length - 1);
                     envelope[i] = 0.42 - 0.5 * Math.cos(2 * Math.PI * n) + 0.08 * Math.cos(4 * Math.PI * n);
@@ -944,21 +1590,17 @@ class GranularSampler {
             const channelData = impulse.getChannelData(channel);
             
             for (let i = 0; i < length; i++) {
-                // Early reflections
                 if (i < 1000) {
                     channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / 1000, 2);
                 }
                 
-                // Decay
                 const decay = Math.pow(1 - i / length, 1 + this.reverbDecay * 4);
                 channelData[i] += (Math.random() * 2 - 1) * decay * 0.5;
                 
-                // 12-bit quantization for lo-fi character
                 const bits = 12;
                 const steps = Math.pow(2, bits);
                 channelData[i] = Math.round(channelData[i] * steps) / steps;
                 
-                // Room size modulation
                 if (i % Math.floor(100 + this.reverbSize * 400) === 0) {
                     channelData[i] += (Math.random() * 2 - 1) * decay * 0.3;
                 }
@@ -976,25 +1618,32 @@ class GranularSampler {
         }
     }
     
-    // Reset function for RESET button
     resetAllParameters() {
-        // Reset all sliders to default values
         Object.keys(this.defaultValues).forEach(param => {
             const element = document.getElementById(param);
             if (element) {
                 element.value = this.defaultValues[param];
-                // Trigger change event to update the parameter
                 element.dispatchEvent(new Event('input'));
             }
         });
         
         // Reset special cases
         this.grainShape = 'blackman';
-        this.ringModSourceType = 'envelope';
+        this.ringModSourceType = 'grains';
         this.lfoShape = 'sine';
         this.isMuted = false;
-        this.combSeqEnabled = false; // CHANGED: from stringSeqEnabled
+        this.combSeqEnabled = false;
         this.wrapEnabled = false;
+        this.envelopeLoopEnabled = false;
+        
+        // Reset envelope points to default
+        this.envelopePoints = [
+            {x: 0, y: 0.5},
+            {x: 0.2, y: 0.8},
+            {x: 0.4, y: 0.6},
+            {x: 0.7, y: 0.9},
+            {x: 1.0, y: 0.3}
+        ];
         
         // Update UI elements
         document.querySelectorAll('.grain-shape-btn').forEach(btn => {
@@ -1004,26 +1653,33 @@ class GranularSampler {
             }
         });
         
-        // Set envelope as default
-        document.getElementById('ringModEnv').classList.add('active');
+        // Set grains as default ring mod source
+        document.getElementById('ringModGrains').classList.add('active');
+        document.getElementById('ringModOsc').classList.remove('active');
         document.getElementById('ringModNoise').classList.remove('active');
         
         document.getElementById('lfoShape').value = 'sine';
-        
         document.getElementById('muteButton').classList.remove('active');
-        document.getElementById('stringSeqToggle').classList.remove('active'); // Note: ID stays same for compatibility
+        document.getElementById('stringSeqToggle').classList.remove('active');
         document.getElementById('wrapToggle').classList.remove('active');
+        document.getElementById('envelopeLoopToggle').classList.remove('active');
+        document.getElementById('envelopeLoopToggle').textContent = 'Loop OFF';
         
-        // Reset ring mod to envelope source
-        this.switchRingModSource('envelope');
+        // Reset ring mod to grains source
+        this.switchRingModSource('grains');
         this.updateVolumeBoost();
-        this.updateCombSequencer(); // CHANGED: from updateStringSequencer
-        this.updateWrapGlow(); // Update wrap glow
+        this.updateCombSequencer();
+        this.updateCombSeqButton(); // NEW
+        this.updateWrapGlow();
+        
+        // Reset all comb seq LFOs
+        this.combSeqLfos.forEach((lfoData, paramName) => {
+            this.updateCombSeqLFO(paramName, 0);
+        });
         
         console.log('All parameters reset to defaults');
     }
     
-    // Mute function
     toggleMute() {
         this.isMuted = !this.isMuted;
         this.muteGainNode.gain.value = this.isMuted ? 0 : 1;
@@ -1033,25 +1689,19 @@ class GranularSampler {
         muteButton.textContent = this.isMuted ? '🔇 MUTED' : '🔊 MUTE';
     }
     
-    // Volume booster update
     updateVolumeBoost() {
-        // Apply 40% boost when volume is at maximum
-        if (this.volume >= 1.9) { // Near max (2.0)
-            // Increase makeup gain through compression
+        if (this.volume >= 1.9) {
             this.volumeBooster.threshold.value = -6;
             this.volumeBooster.ratio.value = 20;
             
-            // Add visual indicator
             const volumeControl = document.querySelector('.master-volume-control');
             if (volumeControl) {
                 volumeControl.classList.add('volume-boost-indicator', 'boosted');
             }
         } else {
-            // Normal compression settings
             this.volumeBooster.threshold.value = -12;
             this.volumeBooster.ratio.value = 12;
             
-            // Remove visual indicator
             const volumeControl = document.querySelector('.master-volume-control');
             if (volumeControl) {
                 volumeControl.classList.remove('boosted');
@@ -1059,31 +1709,26 @@ class GranularSampler {
         }
     }
     
-    // ENHANCED: Update LFO with extended range for filter FM
     updateLFO() {
-    this.lfoNode.frequency.value = this.lfoSpeed;
-    this.lfoGainNode.gain.value = (this.lfoDepth / 100) * 2000;
-    
-    // Update waveform
-    if (this.lfoShape === 'sawtooth' || this.lfoShape === 'square') {
-        this.lfoNode.type = this.lfoShape;
-    } else if (this.lfoShape === 'triangle') {
-        this.lfoNode.type = 'triangle';
-    } else {
-        this.lfoNode.type = 'sine';
+        this.lfoNode.frequency.value = this.lfoSpeed;
+        this.lfoGainNode.gain.value = (this.lfoDepth / 100) * 2000;
+        
+        if (this.lfoShape === 'sawtooth' || this.lfoShape === 'square') {
+            this.lfoNode.type = this.lfoShape;
+        } else if (this.lfoShape === 'triangle') {
+            this.lfoNode.type = 'triangle';
+        } else {
+            this.lfoNode.type = 'sine';
+        }
     }
-}
     
     updateVocoderMix() {
         const mix = this.vocoderMix / 100;
         this.vocoderMixNode.gain.value = mix;
         this.vocoderDryNode.gain.value = 1 - mix;
         
-        // Update vocoder modulation - simple envelope following simulation
         if (mix > 0) {
-            // Process modulator signal (from wavefolder/ringmod output)
             this.vocoderBands.forEach((band, i) => {
-                // Simulate envelope following by using gain reduction
                 const modulation = 0.5 + Math.sin(this.audioContext.currentTime * (i + 1)) * 0.3;
                 band.carrierGain.gain.value = this.vocoderBandGains[i] * modulation;
             });
@@ -1099,72 +1744,81 @@ class GranularSampler {
         }
     }
     
+    // Enhanced Ring Mod with three sources
     updateRingModMix() {
         const mix = this.ringModMix / 100;
         this.ringModMixNode.gain.value = mix;
         this.ringModDryNode.gain.value = 1 - mix;
     }
 
+    // Enhanced Spectral Freeze with resonance
     updateSpectralFreeze() {
-        // Simple spectral freeze using delay feedback
         const feedbackAmount = this.spectralFreeze / 100 * 0.95;
-        if (!this.spectralFeedbackNode) {
-            this.spectralFeedbackNode = this.audioContext.createGain();
-            this.spectralFreezeNode.connect(this.spectralFeedbackNode);
-            this.spectralFeedbackNode.connect(this.spectralFreezeNode);
-        }
         this.spectralFeedbackNode.gain.value = feedbackAmount;
+        
+        // Update resonance
+        const resonanceGain = (this.spectralResonance / 100) * 12; // Up to +12dB
+        this.spectralFilterNode.gain.value = resonanceGain;
+        
+        // Modulate filter frequency based on resonance
+        const freqMod = 1000 + (this.spectralResonance / 100) * 2000;
+        this.spectralFilterNode.frequency.value = freqMod;
     }
 
-    // ENHANCED: Phaser with better audibility and wet/dry mix
     updatePhaser() {
-        // Update phaser LFO rate
         this.phaserLfo.frequency.value = this.phaserRate;
         
-        // Update phaser depth with better scaling
-        const depthAmount = (this.phaserDepth / 100) * 1500; // Increased range
+        const depthAmount = (this.phaserDepth / 100) * 1500;
         if (this.phaserLfoGain) {
             this.phaserLfoGain.gain.value = depthAmount;
         }
         
-        // Update gain with harmonic saturation at higher levels
         this.phaserGainNode.gain.value = this.phaserGain;
         if (this.phaserGain > 1.5) {
-            // Enable harmonic saturation at higher gain levels
             this.phaserSaturation.curve = this.makeHarmonicSaturationCurve();
         }
         
-        // Enhanced wet/dry balance for better audibility
-        const wetAmount = Math.min(this.phaserDepth / 100, 0.7); // Cap wet amount
+        const wetAmount = Math.min(this.phaserDepth / 100, 0.7);
         this.phaserMixNode.gain.value = wetAmount;
-        this.phaserDryNode.gain.value = 1 - wetAmount * 0.5; // Don't fully attenuate dry
+        this.phaserDryNode.gain.value = 1 - wetAmount * 0.5;
+    }
+
+    // NEW: Update WARP module
+    updateWarp() {
+        if (this.wrapEnabled && this.looperEnabled) {
+            // Enable warp effect
+            this.warpGainNode.gain.value = 1;
+            this.warpRateOsc.frequency.value = this.warpRate;
+            this.wrapDelayNode.delayTime.value = this.warpLength / 1000;
+            
+            // Update feedback for ping-pong effect
+            this.warpFeedbackNode.gain.value = 0.85;
+        } else {
+            // Disable warp effect
+            this.warpGainNode.gain.value = 0;
+            this.warpFeedbackNode.gain.value = 0;
+        }
     }
 
     update3DPanner() {
-        // Update panner speeds
         this.pannerLfoX.frequency.value = this.pannerSpeed;
         this.pannerLfoY.frequency.value = this.pannerSpeed * 0.7;
         
-        // Update axis depths
-        const xDepth = (this.pannerXDepth / 100) * 5; // Max 5 units
-        const yRange = (this.pannerYRange / 100) * 5; // Max 5 units
+        const xDepth = (this.pannerXDepth / 100) * 5;
+        const yRange = (this.pannerYRange / 100) * 5;
         
         this.pannerXGain.gain.value = xDepth;
         this.pannerYGain.gain.value = yRange;
     }
     
-    // Improved frequency shifter with extended range
     updateFreqShifter() {
-        // Update frequency shift amount (-50 to +50 Hz)
         this.freqShifterOsc.frequency.value = this.freqShifterAmount;
         
-        // Update mix with compensation for gain boost
         const mix = this.freqShifterMix / 100;
         this.freqShifterWetNode.gain.value = mix;
         this.freqShifterDryNode.gain.value = 1 - mix;
     }
 
-    // ENHANCED: Update wrap glow effect
     updateWrapGlow() {
         const wrapButton = document.getElementById('wrapToggle');
         if (this.looperEnabled && this.wrapEnabled) {
@@ -1173,32 +1827,24 @@ class GranularSampler {
             wrapButton.classList.remove('wrap-loop-active');
         }
     }
-    // ENHANCED: Comb Filter Sequencer (replaces String Sequencer) with soft clip
     updateCombSequencer() {
         if (!this.combSeqLfo) return;
         
-        // Update LFO frequency
         this.combSeqLfo.frequency.value = this.combSeqSpeed;
-        
-        // Update depth (acts as on/off and intensity)
         this.combSeqLfoGain.gain.value = this.combSeqDepth / 100;
         
-        // NEW: Update wet/dry mix
         const wetMix = this.combSeqWetMix / 100;
         this.combSeqWetGainNode.gain.value = wetMix;
         this.combSeqDryGainNode.gain.value = 1 - wetMix;
         
-        // NEW: Update soft clip
         if (this.combSeqSoftClipNode) {
             this.combSeqSoftClipNode.curve = this.makeSoftClipCurve(this.combSeqSoftClip / 100);
         }
         
-        // Process comb filter sequencer if enabled and depth > 0
         if (this.combSeqEnabled && this.combSeqDepth > 0) {
             const now = this.audioContext.currentTime;
             
             this.combSeqStreams.forEach((stream, streamIndex) => {
-                // Update comb filter frequency
                 const frequency = this.combSeqFrequencies[stream.currentStep];
                 const delayTime = 1 / frequency;
                 stream.delayNode.delayTime.setValueAtTime(
@@ -1206,41 +1852,86 @@ class GranularSampler {
                     now
                 );
                 
-                // Check if it's time to trigger this stream
-                const stepDuration = 1 / (this.combSeqSpeed * 5); // 5 steps
+                const stepDuration = 1 / (this.combSeqSpeed * 5);
                 const timeSinceLastTrigger = now - stream.lastTriggerTime;
                 
                 if (timeSinceLastTrigger >= stepDuration) {
-                    // Apply squeezed LFO modulation to feedback
                     let lfoValue = Math.sin(now * this.combSeqSpeed * Math.PI * 2);
                     if (this.combSeqSqueeze > 0) {
                         const squeeze = 1 + this.combSeqSqueeze * 9;
                         lfoValue = Math.tanh(lfoValue * squeeze) / Math.tanh(squeeze);
                     }
                     
-                    // Modulate feedback and mix gain
                     const baseGain = 0.3 * (this.combSeqDepth / 100);
                     const modulatedGain = baseGain * (0.5 + Math.abs(lfoValue) * 0.5);
                     
                     stream.mixGain.gain.setValueAtTime(modulatedGain, now);
                     
-                    // Advance to next step
                     stream.currentStep = (stream.currentStep + 1) % 5;
                     stream.lastTriggerTime = now;
                 }
             });
         } else {
-            // Mute all streams when disabled
             this.combSeqStreams.forEach(stream => {
                 stream.mixGain.gain.setValueAtTime(0, this.audioContext.currentTime);
             });
         }
     }
     
+    // NEW: Update Chromatic Envelope
+    updateChromaticEnvelope() {
+        this.chromaticEnvelope.frequency.value = this.envelopeRate;
+        
+        const depth = this.envelopeDepth / 100;
+        this.envelopeGainNode.gain.value = depth;
+        
+        // Connect to master volume if envelope is active
+        if (this.envelopeLoopEnabled && depth > 0) {
+            try {
+                this.envelopeGainNode.connect(this.masterGainNode.gain);
+            } catch (e) {
+                // Already connected or connection failed
+            }
+        } else {
+            try {
+                this.envelopeGainNode.disconnect();
+            } catch (e) {
+                // Not connected
+            }
+        }
+    }
+
+    // NEW: Toggle Chromatic Envelope Loop
+    toggleEnvelopeLoop() {
+        this.envelopeLoopEnabled = !this.envelopeLoopEnabled;
+        const button = document.getElementById('envelopeLoopToggle');
+        if (button) {
+            button.textContent = this.envelopeLoopEnabled ? 'Loop ON' : 'Loop OFF';
+            button.classList.toggle('active', this.envelopeLoopEnabled);
+        }
+        this.updateChromaticEnvelope();
+    }
+
+    // NEW: Reset Envelope Shape
+    resetEnvelopeShape() {
+        this.envelopePoints = [
+            {x: 0, y: 0.5},
+            {x: 0.2, y: 0.8},
+            {x: 0.4, y: 0.6},
+            {x: 0.7, y: 0.9},
+            {x: 1.0, y: 0.3}
+        ];
+    }
+
+    // NEW: Update Frequency Isolator
+    updateFrequencyIsolator() {
+        this.isolatorNodes.lo.gain.gain.value = this.isolatorLo;
+        this.isolatorNodes.mid.gain.gain.value = this.isolatorMid;
+        this.isolatorNodes.hi.gain.gain.value = this.isolatorHi;
+    }
+    
     updateDelayMix() {
-        const mix = this.delayMix;
-        this.delayWetNode.gain.value = mix;
-        this.delayDryNode.gain.value = 1 - mix;
+        this.updateEnhancedDelay(); // Use enhanced delay update
     }
     
     updateReverbMix() {
@@ -1249,36 +1940,31 @@ class GranularSampler {
         this.reverbDryNode.gain.value = 1 - mix;
     }
     
+    // Enhanced Ring Mod Source Switching
     switchRingModSource(type) {
-        // Disconnect current source
         if (this.ringModSource) {
             this.ringModSource.disconnect(this.ringModNode.gain);
         }
         
-        if (type === 'envelope') {
-            this.ringModSource = this.ringModEnvNode;
-            this.ringModSourceType = 'envelope';
-        } else {
-            // Recreate noise source
-            const noiseBuffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate * 2, this.audioContext.sampleRate);
-            const noiseData = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < noiseData.length; i++) {
-                noiseData[i] = Math.random() * 2 - 1;
-            }
-            
-            const noiseSource = this.audioContext.createBufferSource();
-            noiseSource.buffer = noiseBuffer;
-            noiseSource.loop = true;
-            noiseSource.start();
-            
-            this.ringModSource = noiseSource;
-            this.ringModSourceType = 'noise';
+        switch (type) {
+            case 'grains':
+                this.ringModSource = this.ringModGrainSource;
+                this.ringModSourceType = 'grains';
+                break;
+            case 'oscillator':
+                this.ringModSource = this.ringModOscSource;
+                this.ringModSourceType = 'oscillator';
+                break;
+            case 'noise':
+                this.ringModSource = this.ringModNoiseSource;
+                this.ringModSourceType = 'noise';
+                break;
         }
         
         this.ringModSource.connect(this.ringModNode.gain);
     }
 
-    // ENHANCED: Bigger blood red grain particles (2x size)
+    // Enhanced grain animation setup
     setupGrainAnimation() {
         this.grainCanvas = document.getElementById('grainCanvas');
         if (this.grainCanvas) {
@@ -1291,24 +1977,22 @@ class GranularSampler {
     addGrainParticle(x) {
         if (!this.grainCtx) return;
         
-        // ENHANCED: Bigger blood red glowing particles (2x size)
         const particle = {
             x: x,
-            y: this.grainCanvas.height / 2 + (Math.random() - 0.5) * 20, // Center with small variation
-            size: 1 + Math.random() * 2, // CHANGED: 2x bigger: 1-3px instead of 0.5-1.5px
+            y: this.grainCanvas.height / 2 + (Math.random() - 0.5) * 20,
+            size: 1 + Math.random() * 2,
             opacity: 1,
-            vx: (Math.random() - 0.5) * 3, // Spray direction
-            vy: -0.5 - Math.random() * 2, // Upward spray
-            vz: Math.random() * 2 + 1, // Forward motion
+            vx: (Math.random() - 0.5) * 3,
+            vy: -0.5 - Math.random() * 2,
+            vz: Math.random() * 2 + 1,
             life: 1.0,
-            decay: 0.015 + Math.random() * 0.01, // Faster decay
-            color: `rgba(255, ${Math.floor(Math.random() * 50)}, 0, `, // Blood red variations
+            decay: 0.015 + Math.random() * 0.01,
+            color: `rgba(255, ${Math.floor(Math.random() * 50)}, 0, `,
             glowIntensity: 0.8 + Math.random() * 0.4
         };
         
         this.grainParticles.push(particle);
         
-        // Limit particle count for performance
         if (this.grainParticles.length > 30) {
             this.grainParticles.shift();
         }
@@ -1317,38 +2001,30 @@ class GranularSampler {
     animateGrains() {
         if (!this.grainCtx) return;
         
-        // Clear canvas
         this.grainCtx.clearRect(0, 0, this.grainCanvas.width, this.grainCanvas.height);
         
-        // Update and draw particles
         for (let i = this.grainParticles.length - 1; i >= 0; i--) {
             const particle = this.grainParticles[i];
             
-            // Update particle physics
             particle.x += particle.vx;
             particle.y += particle.vy;
-            particle.vz += 0.1; // Acceleration forward
+            particle.vz += 0.1;
             particle.life -= particle.decay;
             particle.opacity = particle.life * particle.glowIntensity;
             
-            // Scale effect as particle moves forward
             const scale = 1 + particle.vz * 0.1;
             const actualSize = particle.size * scale;
             
-            // Remove dead particles (adjusted for bigger particles)
-            if (particle.life <= 0 || actualSize > 6) { // CHANGED: from 3 to 6
+            if (particle.life <= 0 || actualSize > 6) {
                 this.grainParticles.splice(i, 1);
                 continue;
             }
             
-           // ENHANCED: Blood red laser-like appearance - bigger (no white center)
             this.grainCtx.save();
             this.grainCtx.globalAlpha = particle.opacity;
 
-            // Create glowing effect with multiple layers
             const color = particle.color + particle.opacity + ')';
 
-            // Outer glow
             this.grainCtx.fillStyle = color;
             this.grainCtx.shadowColor = '#ff0000';
             this.grainCtx.shadowBlur = actualSize * 4;
@@ -1356,7 +2032,6 @@ class GranularSampler {
             this.grainCtx.arc(particle.x, particle.y, actualSize * 1.5, 0, Math.PI * 2);
             this.grainCtx.fill();
 
-            // Inner bright core
             this.grainCtx.shadowBlur = actualSize * 2;
             this.grainCtx.fillStyle = `rgba(255, 100, 100, ${particle.opacity})`;
             this.grainCtx.beginPath();
@@ -1369,7 +2044,7 @@ class GranularSampler {
         requestAnimationFrame(() => this.animateGrains());
     }
 
-    // NEW: Preset Management Functions
+    // Preset Management Functions
     savePreset(name) {
         if (!name) return false;
         
@@ -1379,7 +2054,6 @@ class GranularSampler {
             parameters: {}
         };
         
-        // Capture all parameter values
         const parameterElements = document.querySelectorAll('input[type="range"], select');
         parameterElements.forEach(element => {
             if (element.id) {
@@ -1387,15 +2061,25 @@ class GranularSampler {
             }
         });
         
-        // Capture button states
         const buttonElements = document.querySelectorAll('button.active');
         preset.buttonStates = Array.from(buttonElements).map(btn => btn.id);
         
-        // Capture grain shape
         const activeShapeBtn = document.querySelector('.grain-shape-btn.active');
         if (activeShapeBtn) {
             preset.grainShape = activeShapeBtn.dataset.shape;
         }
+        
+        // Store envelope points
+        preset.envelopePoints = [...this.envelopePoints];
+        
+        // Store comb seq LFO states
+        preset.combSeqLfoStates = {};
+        this.combSeqLfos.forEach((lfoData, paramName) => {
+            preset.combSeqLfoStates[paramName] = {
+                depth: lfoData.depth,
+                active: lfoData.active
+            };
+        });
         
         this.presets.set(name, preset);
         this.savePresetsToStorage();
@@ -1439,6 +2123,18 @@ class GranularSampler {
                 }
             });
             this.grainShape = preset.grainShape;
+        }
+        
+        // Load envelope points
+        if (preset.envelopePoints) {
+            this.envelopePoints = [...preset.envelopePoints];
+        }
+        
+        // Load comb seq LFO states
+        if (preset.combSeqLfoStates) {
+            Object.entries(preset.combSeqLfoStates).forEach(([paramName, state]) => {
+                this.updateCombSeqLFO(paramName, state.depth);
+            });
         }
         
         console.log(`Preset "${name}" loaded`);
@@ -1493,7 +2189,6 @@ class GranularSampler {
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         
-        // ENHANCED: Accept both MP3 and WAV files
         fileInput.accept = '.mp3,.wav,.m4a,.ogg';
         
         // Drag and drop
@@ -1525,31 +2220,29 @@ class GranularSampler {
             this.toggleRecording();
         });
         
-        // ENHANCED: Loop and Wrap buttons with glow update
         document.getElementById('looperToggle').addEventListener('click', () => {
             this.looperEnabled = !this.looperEnabled;
             document.getElementById('looperToggle').classList.toggle('active', this.looperEnabled);
-            this.updateWrapGlow(); // Update wrap glow
+            this.updateWrapGlow();
+            this.updateWarp(); // NEW: Update warp when loop changes
         });
 
-        // Wrap button
         document.getElementById('wrapToggle').addEventListener('click', () => {
             this.wrapEnabled = !this.wrapEnabled;
             document.getElementById('wrapToggle').classList.toggle('active', this.wrapEnabled);
-            this.updateWrapGlow(); // Update wrap glow
+            this.updateWrapGlow();
+            this.updateWarp(); // NEW: Update warp when wrap changes
         });
         
-        // Reset button
         document.getElementById('resetButton').addEventListener('click', () => {
             this.resetAllParameters();
         });
         
-        // Mute button
         document.getElementById('muteButton').addEventListener('click', () => {
             this.toggleMute();
         });
         
-        // NEW: Preset controls
+        // Preset controls
         document.getElementById('savePresetBtn').addEventListener('click', () => {
             const name = prompt('Enter preset name:');
             if (name) {
@@ -1566,45 +2259,58 @@ class GranularSampler {
             }
         });
         
-        // Ring mod source buttons - default to envelope
+        // Enhanced Ring mod source buttons
         document.getElementById('ringModNoise').addEventListener('click', () => {
             this.switchRingModSource('noise');
             document.getElementById('ringModNoise').classList.add('active');
-            document.getElementById('ringModEnv').classList.remove('active');
+            document.getElementById('ringModOsc').classList.remove('active');
+            document.getElementById('ringModGrains').classList.remove('active');
         });
         
-        document.getElementById('ringModEnv').addEventListener('click', () => {
-            this.switchRingModSource('envelope');
-            document.getElementById('ringModEnv').classList.add('active');
+        document.getElementById('ringModOsc').addEventListener('click', () => {
+            this.switchRingModSource('oscillator');
+            document.getElementById('ringModOsc').classList.add('active');
             document.getElementById('ringModNoise').classList.remove('active');
+            document.getElementById('ringModGrains').classList.remove('active');
         });
         
-        // Grain shape buttons with sine option
+        document.getElementById('ringModGrains').addEventListener('click', () => {
+            this.switchRingModSource('grains');
+            document.getElementById('ringModGrains').classList.add('active');
+            document.getElementById('ringModNoise').classList.remove('active');
+            document.getElementById('ringModOsc').classList.remove('active');
+        });
+        
+        // Grain shape buttons
         const grainShapeButtons = document.querySelectorAll('.grain-shape-btn');
         grainShapeButtons.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Remove active class from all buttons
                 grainShapeButtons.forEach(b => b.classList.remove('active'));
-                // Add active class to clicked button
                 btn.classList.add('active');
-                // Update grain shape
                 this.grainShape = btn.dataset.shape;
             });
         });
         
-        // CHANGED: Comb sequencer toggle (was string sequencer)
+        // Comb sequencer toggle with updated button text
         document.getElementById('stringSeqToggle').addEventListener('click', () => {
-            this.combSeqEnabled = !this.combSeqEnabled; // CHANGED
-            document.getElementById('stringSeqToggle').classList.toggle('active', this.combSeqEnabled);
+            this.combSeqEnabled = !this.combSeqEnabled;
+            this.updateCombSeqButton(); // NEW: Use new button update function
             
-            // Reinitialize comb sequencer if needed
             if (this.combSeqEnabled) {
-                this.initCombSequencer(); // CHANGED
-                this.connectAudioNodes(); // Reconnect with comb sequencer
+                this.initCombSequencer();
+                this.connectAudioNodes();
             }
         });
         
-        // Controls
+        // NEW: Chromatic Envelope controls
+        document.getElementById('envelopeLoopToggle').addEventListener('click', () => {
+            this.toggleEnvelopeLoop();
+        });
+        
+        document.getElementById('envelopeResetBtn').addEventListener('click', () => {
+            this.resetEnvelopeShape();
+        });
+        
         this.setupSliderControls();
     }
     
@@ -1613,31 +2319,38 @@ class GranularSampler {
             // Granular
             grainSize: (val) => { 
                 this.grainSize = parseInt(val); 
-                document.getElementById('grainSizeValue').textContent = val + 'ms'; 
+                document.getElementById('grainSizeValue').textContent = val + 'ms';
+                // NEW: Update comb seq LFO if active
+                this.updateCombSeqLFO('grainSize', this.combSeqEnabled ? 50 : 0);
             },
             density: (val) => { 
                 this.density = parseInt(val); 
-                document.getElementById('densityValue').textContent = val; 
+                document.getElementById('densityValue').textContent = val;
+                this.updateCombSeqLFO('density', this.combSeqEnabled ? 30 : 0);
             },
             windowScan: (val) => { 
                 this.windowScan = parseInt(val); 
-                document.getElementById('windowScanValue').textContent = val + '%'; 
+                document.getElementById('windowScanValue').textContent = val + '%';
+                this.updateCombSeqLFO('windowScan', this.combSeqEnabled ? 40 : 0);
             },
             timeStretch: (val) => { 
                 this.timeStretch = parseFloat(val); 
-                document.getElementById('timeStretchValue').textContent = val + 'x'; 
+                document.getElementById('timeStretchValue').textContent = val + 'x';
+                this.updateCombSeqLFO('timeStretch', this.combSeqEnabled ? 25 : 0);
             },
             
-            // Filter & LFO - ENHANCED: Extended LFO range
+            // Filter & LFO
             filterFreq: (val) => { 
                 this.filterFreq = parseInt(val); 
                 this.filterNode.frequency.value = this.filterFreq;
                 document.getElementById('filterFreqValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('filterFreq', this.combSeqEnabled ? 60 : 0);
             },
             filterQ: (val) => { 
                 this.filterQ = parseFloat(val); 
                 this.filterNode.Q.value = this.filterQ;
-                document.getElementById('filterQValue').textContent = val; // Now shows "Resonance"
+                document.getElementById('filterQValue').textContent = val;
+                this.updateCombSeqLFO('filterQ', this.combSeqEnabled ? 35 : 0);
             },
             lfoSpeed: (val) => { 
                 this.lfoSpeed = parseFloat(val); 
@@ -1654,39 +2367,48 @@ class GranularSampler {
             vocoder1: (val) => { 
                 this.updateVocoderBand(0, parseFloat(val));
                 document.getElementById('vocoder1Value').textContent = val;
+                this.updateCombSeqLFO('vocoder1', this.combSeqEnabled ? 20 : 0);
             },
             vocoder2: (val) => { 
                 this.updateVocoderBand(1, parseFloat(val));
                 document.getElementById('vocoder2Value').textContent = val;
+                this.updateCombSeqLFO('vocoder2', this.combSeqEnabled ? 20 : 0);
             },
             vocoder3: (val) => { 
                 this.updateVocoderBand(2, parseFloat(val));
                 document.getElementById('vocoder3Value').textContent = val;
+                this.updateCombSeqLFO('vocoder3', this.combSeqEnabled ? 20 : 0);
             },
             vocoder4: (val) => { 
                 this.updateVocoderBand(3, parseFloat(val));
                 document.getElementById('vocoder4Value').textContent = val;
+                this.updateCombSeqLFO('vocoder4', this.combSeqEnabled ? 20 : 0);
             },
             vocoder5: (val) => { 
                 this.updateVocoderBand(4, parseFloat(val));
                 document.getElementById('vocoder5Value').textContent = val;
+                this.updateCombSeqLFO('vocoder5', this.combSeqEnabled ? 20 : 0);
             },
             vocoder6: (val) => { 
                 this.updateVocoderBand(5, parseFloat(val));
                 document.getElementById('vocoder6Value').textContent = val;
+                this.updateCombSeqLFO('vocoder6', this.combSeqEnabled ? 20 : 0);
             },
             vocoder7: (val) => { 
                 this.updateVocoderBand(6, parseFloat(val));
                 document.getElementById('vocoder7Value').textContent = val;
+                this.updateCombSeqLFO('vocoder7', this.combSeqEnabled ? 20 : 0);
             },
             vocoder8: (val) => { 
                 this.updateVocoderBand(7, parseFloat(val));
                 document.getElementById('vocoder8Value').textContent = val;
+                this.updateCombSeqLFO('vocoder8', this.combSeqEnabled ? 20 : 0);
             },
             vocoderMix: (val) => { 
                 this.vocoderMix = parseInt(val);
                 this.updateVocoderMix();
                 document.getElementById('vocoderMixValue').textContent = val + '%';
+                this.updateCombSeqLFO('vocoderMix', this.combSeqEnabled ? 45 : 0);
             },
             
             // Wavefolder & Ring Mod
@@ -1694,43 +2416,77 @@ class GranularSampler {
                 this.wavefoldAmount = parseInt(val) / 100;
                 this.waveShaperNode.curve = this.makeWavefolderCurve(this.wavefoldAmount);
                 document.getElementById('wavefoldValue').textContent = val + '%';
+                this.updateCombSeqLFO('wavefold', this.combSeqEnabled ? 40 : 0);
             },
             ringModMix: (val) => { 
                 this.ringModMix = parseInt(val);
                 this.updateRingModMix();
                 document.getElementById('ringModMixValue').textContent = val + '%';
+                this.updateCombSeqLFO('ringModMix', this.combSeqEnabled ? 35 : 0);
             },
-            ringModEnvSpeed: (val) => { 
-                this.ringModEnvSpeed = parseFloat(val);
-                this.ringModEnvNode.frequency.value = val;
-                document.getElementById('ringModEnvSpeedValue').textContent = val + 'Hz';
+            ringModFreq: (val) => { 
+                this.ringModFreq = parseFloat(val);
+                this.ringModOscSource.frequency.value = val;
+                document.getElementById('ringModFreqValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('ringModFreq', this.combSeqEnabled ? 50 : 0);
             },
             
-            // Spectral Freeze & Phaser
+            // Enhanced Spectral Freeze & Phaser
             spectralFreeze: (val) => { 
                 this.spectralFreeze = parseInt(val);
                 this.updateSpectralFreeze();
                 document.getElementById('spectralFreezeValue').textContent = val + '%';
+                this.updateCombSeqLFO('spectralFreeze', this.combSeqEnabled ? 30 : 0);
+            },
+            spectralResonance: (val) => { 
+                this.spectralResonance = parseInt(val);
+                this.updateSpectralFreeze();
+                document.getElementById('spectralResonanceValue').textContent = val + '%';
+                this.updateCombSeqLFO('spectralResonance', this.combSeqEnabled ? 40 : 0);
             },
             phaserRate: (val) => { 
                 this.phaserRate = parseFloat(val);
                 this.updatePhaser();
                 document.getElementById('phaserRateValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('phaserRate', this.combSeqEnabled ? 25 : 0);
             },
             phaserDepth: (val) => { 
                 this.phaserDepth = parseInt(val);
                 this.updatePhaser();
                 document.getElementById('phaserDepthValue').textContent = val + '%';
+                this.updateCombSeqLFO('phaserDepth', this.combSeqEnabled ? 45 : 0);
             },
             phaserFeedback: (val) => { 
                 this.phaserFeedback = parseInt(val);
                 this.updatePhaser();
                 document.getElementById('phaserFeedbackValue').textContent = val + '%';
+                this.updateCombSeqLFO('phaserFeedback', this.combSeqEnabled ? 30 : 0);
             },
             phaserGain: (val) => { 
                 this.phaserGain = parseFloat(val);
                 this.updatePhaser();
                 document.getElementById('phaserGainValue').textContent = val;
+                this.updateCombSeqLFO('phaserGain', this.combSeqEnabled ? 20 : 0);
+            },
+            
+            // NEW: WARP Controls
+            warpRate: (val) => { 
+                this.warpRate = parseFloat(val);
+                this.updateWarp();
+                document.getElementById('warpRateValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('warpRate', this.combSeqEnabled ? 35 : 0);
+            },
+            warpStart: (val) => { 
+                this.warpStart = parseFloat(val);
+                this.updateWarp();
+                document.getElementById('warpStartValue').textContent = val + 'ms';
+                this.updateCombSeqLFO('warpStart', this.combSeqEnabled ? 25 : 0);
+            },
+            warpLength: (val) => { 
+                this.warpLength = parseFloat(val);
+                this.updateWarp();
+                document.getElementById('warpLengthValue').textContent = val + 'ms';
+                this.updateCombSeqLFO('warpLength', this.combSeqEnabled ? 30 : 0);
             },
             
             // 3D Panner
@@ -1738,16 +2494,19 @@ class GranularSampler {
                 this.pannerXDepth = parseInt(val);
                 this.update3DPanner();
                 document.getElementById('pannerXDepthValue').textContent = val + '%';
+                this.updateCombSeqLFO('pannerXDepth', this.combSeqEnabled ? 40 : 0);
             },
             pannerYRange: (val) => { 
                 this.pannerYRange = parseInt(val);
                 this.update3DPanner();
                 document.getElementById('pannerYRangeValue').textContent = val + '%';
+                this.updateCombSeqLFO('pannerYRange', this.combSeqEnabled ? 40 : 0);
             },
             pannerSpeed: (val) => { 
                 this.pannerSpeed = parseFloat(val);
                 this.update3DPanner();
                 document.getElementById('pannerSpeedValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('pannerSpeed', this.combSeqEnabled ? 25 : 0);
             },
             
             // Enhanced Frequency Shifter
@@ -1755,41 +2514,77 @@ class GranularSampler {
                 this.freqShifterAmount = parseFloat(val);
                 this.updateFreqShifter();
                 document.getElementById('freqShifterAmountValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('freqShifterAmount', this.combSeqEnabled ? 50 : 0);
             },
             freqShifterMix: (val) => { 
                 this.freqShifterMix = parseInt(val);
                 this.updateFreqShifter();
                 document.getElementById('freqShifterMixValue').textContent = val + '%';
+                this.updateCombSeqLFO('freqShifterMix', this.combSeqEnabled ? 35 : 0);
             },
             
             // Volume
             volume: (val) => { 
                 this.volume = parseFloat(val); 
                 this.masterGainNode.gain.value = this.volume;
-                this.updateVolumeBoost(); // Apply volume boost logic
+                this.updateVolumeBoost();
                 document.getElementById('volumeValue').textContent = Math.round(val * 100) + '%';
             },
             
-            // Delay
+            // Enhanced Multi-Tap Delay
             delayTime: (val) => { 
                 this.delayTime = parseFloat(val); 
-                this.delayNode.delayTime.value = this.delayTime;
+                this.updateEnhancedDelay();
                 document.getElementById('delayTimeValue').textContent = Math.round(val * 1000) + 'ms';
+                this.updateCombSeqLFO('delayTime', this.combSeqEnabled ? 40 : 0);
             },
             delayFeedback: (val) => { 
                 this.delayFeedback = parseFloat(val); 
-                this.feedbackNode.gain.value = this.delayFeedback;
+                this.updateEnhancedDelay();
                 document.getElementById('delayFeedbackValue').textContent = Math.round(val * 100) + '%';
+                this.updateCombSeqLFO('delayFeedback', this.combSeqEnabled ? 30 : 0);
+            },
+            delayTaps: (val) => { 
+                this.delayTaps = parseInt(val);
+                this.updateEnhancedDelay();
+                document.getElementById('delayTapsValue').textContent = val;
+                this.updateCombSeqLFO('delayTaps', this.combSeqEnabled ? 20 : 0);
+            },
+            delaySpread: (val) => { 
+                this.delaySpread = parseInt(val);
+                this.updateEnhancedDelay();
+                document.getElementById('delaySpreadValue').textContent = val + '%';
+                this.updateCombSeqLFO('delaySpread', this.combSeqEnabled ? 35 : 0);
+            },
+            delayDrift: (val) => { 
+                this.delayDrift = parseInt(val);
+                this.updateEnhancedDelay();
+                document.getElementById('delayDriftValue').textContent = val + '%';
+                this.updateCombSeqLFO('delayDrift', this.combSeqEnabled ? 40 : 0);
+            },
+            delayAging: (val) => { 
+                this.delayAging = parseInt(val);
+                this.updateEnhancedDelay();
+                document.getElementById('delayAgingValue').textContent = val + '%';
+                this.updateCombSeqLFO('delayAging', this.combSeqEnabled ? 25 : 0);
+            },
+            delayFlutter: (val) => { 
+                this.delayFlutter = parseInt(val);
+                this.updateEnhancedDelay();
+                document.getElementById('delayFlutterValue').textContent = val + '%';
+                this.updateCombSeqLFO('delayFlutter', this.combSeqEnabled ? 30 : 0);
             },
             delaySoftClip: (val) => { 
                 this.delaySoftClip = parseInt(val) / 100;
-                this.delaySoftClipNode.curve = this.makeSoftClipCurve(this.delaySoftClip);
+                this.updateEnhancedDelay();
                 document.getElementById('delaySoftClipValue').textContent = val + '%';
+                this.updateCombSeqLFO('delaySoftClip', this.combSeqEnabled ? 35 : 0);
             },
             delayMix: (val) => { 
                 this.delayMix = parseFloat(val); 
                 this.updateDelayMix();
                 document.getElementById('delayMixValue').textContent = Math.round(val * 100) + '%';
+                this.updateCombSeqLFO('delayMix', this.combSeqEnabled ? 30 : 0);
             },
             
             // Reverb
@@ -1797,81 +2592,128 @@ class GranularSampler {
                 this.reverbSize = parseInt(val) / 100;
                 this.generateReverbImpulse();
                 document.getElementById('reverbSizeValue').textContent = val + '%';
+                this.updateCombSeqLFO('reverbSize', this.combSeqEnabled ? 25 : 0);
             },
             reverbDecay: (val) => { 
                 this.reverbDecay = parseInt(val) / 100;
                 this.generateReverbImpulse();
                 document.getElementById('reverbDecayValue').textContent = val + '%';
+                this.updateCombSeqLFO('reverbDecay', this.combSeqEnabled ? 25 : 0);
             },
             reverbPreDelay: (val) => { 
                 this.reverbPreDelay = parseInt(val) / 1000;
                 this.reverbPreDelayNode.delayTime.value = this.reverbPreDelay;
                 document.getElementById('reverbPreDelayValue').textContent = val + 'ms';
+                this.updateCombSeqLFO('reverbPreDelay', this.combSeqEnabled ? 20 : 0);
             },
             reverbWetGain: (val) => { 
                 this.reverbWetGain = parseFloat(val);
                 this.reverbWetGainNode.gain.value = val;
                 document.getElementById('reverbWetGainValue').textContent = val;
+                this.updateCombSeqLFO('reverbWetGain', this.combSeqEnabled ? 30 : 0);
             },
             reverbMix: (val) => { 
                 this.reverbMix = parseInt(val);
                 this.updateReverbMix();
                 document.getElementById('reverbMixValue').textContent = val + '%';
+                this.updateCombSeqLFO('reverbMix', this.combSeqEnabled ? 35 : 0);
             },
             
-            // CHANGED: Comb Sequencer (was String Sequencer) with NEW soft clip
+            // Comb Sequencer
             stringSeqSpeed: (val) => { 
-                this.combSeqSpeed = parseFloat(val); // CHANGED: from stringSeqSpeed
-                this.updateCombSequencer(); // CHANGED: from updateStringSequencer
+                this.combSeqSpeed = parseFloat(val);
+                this.updateCombSequencer();
                 document.getElementById('stringSeqSpeedValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('stringSeqSpeed', this.combSeqEnabled ? 30 : 0);
             },
             stringSeqDepth: (val) => { 
-                this.combSeqDepth = parseInt(val); // CHANGED: from stringSeqDepth
-                this.updateCombSequencer(); // CHANGED: from updateStringSequencer
+                this.combSeqDepth = parseInt(val);
+                this.updateCombSequencer();
                 document.getElementById('stringSeqDepthValue').textContent = val + '%';
+                this.updateCombSeqLFO('stringSeqDepth', this.combSeqEnabled ? 40 : 0);
             },
-            // NEW: Wet Mix control for comb sequencer
             stringSeqWetMix: (val) => { 
                 this.combSeqWetMix = parseInt(val);
                 this.updateCombSequencer();
                 document.getElementById('stringSeqWetMixValue').textContent = val + '%';
+                this.updateCombSeqLFO('stringSeqWetMix', this.combSeqEnabled ? 35 : 0);
             },
             stringSeqSqueeze: (val) => { 
-                this.combSeqSqueeze = parseInt(val) / 100; // CHANGED: from stringSeqSqueeze
+                this.combSeqSqueeze = parseInt(val) / 100;
                 document.getElementById('stringSeqSqueezeValue').textContent = val + '%';
+                this.updateCombSeqLFO('stringSeqSqueeze', this.combSeqEnabled ? 30 : 0);
             },
-            // NEW: Comb Sequencer Soft Clip
             combSeqSoftClip: (val) => { 
                 this.combSeqSoftClip = parseInt(val);
                 this.updateCombSequencer();
                 document.getElementById('combSeqSoftClipValue').textContent = val + '%';
+                this.updateCombSeqLFO('combSeqSoftClip', this.combSeqEnabled ? 25 : 0);
             },
             
-            // CHANGED: Comb Sequencer Frequency Steps (was pitch steps)
+            // Comb Sequencer Frequency Steps
             stringSeqStep1: (val) => { 
-                this.combSeqFrequencies[0] = parseInt(val); // CHANGED: from stringSeqPitches[0]
+                this.combSeqFrequencies[0] = parseInt(val);
                 document.getElementById('stringSeqStep1Value').textContent = val;
-                this.updateCombSequencer(); // Update
+                this.updateCombSequencer();
+                this.updateCombSeqLFO('stringSeqStep1', this.combSeqEnabled ? 40 : 0);
             },
             stringSeqStep2: (val) => { 
-                this.combSeqFrequencies[1] = parseInt(val); // CHANGED: from stringSeqPitches[1]
+                this.combSeqFrequencies[1] = parseInt(val);
                 document.getElementById('stringSeqStep2Value').textContent = val;
                 this.updateCombSequencer();
+                this.updateCombSeqLFO('stringSeqStep2', this.combSeqEnabled ? 40 : 0);
             },
             stringSeqStep3: (val) => { 
-                this.combSeqFrequencies[2] = parseInt(val); // CHANGED: from stringSeqPitches[2]
+                this.combSeqFrequencies[2] = parseInt(val);
                 document.getElementById('stringSeqStep3Value').textContent = val;
                 this.updateCombSequencer();
+                this.updateCombSeqLFO('stringSeqStep3', this.combSeqEnabled ? 40 : 0);
             },
             stringSeqStep4: (val) => { 
-                this.combSeqFrequencies[3] = parseInt(val); // CHANGED: from stringSeqPitches[3]
+                this.combSeqFrequencies[3] = parseInt(val);
                 document.getElementById('stringSeqStep4Value').textContent = val;
                 this.updateCombSequencer();
+                this.updateCombSeqLFO('stringSeqStep4', this.combSeqEnabled ? 40 : 0);
             },
             stringSeqStep5: (val) => { 
-                this.combSeqFrequencies[4] = parseInt(val); // CHANGED: from stringSeqPitches[4]
+                this.combSeqFrequencies[4] = parseInt(val);
                 document.getElementById('stringSeqStep5Value').textContent = val;
                 this.updateCombSequencer();
+                this.updateCombSeqLFO('stringSeqStep5', this.combSeqEnabled ? 40 : 0);
+            },
+            
+            // NEW: Chromatic Envelope
+            envelopeRate: (val) => { 
+                this.envelopeRate = parseFloat(val);
+                this.updateChromaticEnvelope();
+                document.getElementById('envelopeRateValue').textContent = val + 'Hz';
+                this.updateCombSeqLFO('envelopeRate', this.combSeqEnabled ? 25 : 0);
+            },
+            envelopeDepth: (val) => { 
+                this.envelopeDepth = parseInt(val);
+                this.updateChromaticEnvelope();
+                document.getElementById('envelopeDepthValue').textContent = val + '%';
+                this.updateCombSeqLFO('envelopeDepth', this.combSeqEnabled ? 35 : 0);
+            },
+            
+            // NEW: 3-Band Frequency Isolator
+            isolatorLo: (val) => { 
+                this.isolatorLo = parseFloat(val);
+                this.updateFrequencyIsolator();
+                document.getElementById('isolatorLoValue').textContent = Math.round(val * 100) + '%';
+                this.updateCombSeqLFO('isolatorLo', this.combSeqEnabled ? 40 : 0);
+            },
+            isolatorMid: (val) => { 
+                this.isolatorMid = parseFloat(val);
+                this.updateFrequencyIsolator();
+                document.getElementById('isolatorMidValue').textContent = Math.round(val * 100) + '%';
+                this.updateCombSeqLFO('isolatorMid', this.combSeqEnabled ? 40 : 0);
+            },
+            isolatorHi: (val) => { 
+                this.isolatorHi = parseFloat(val);
+                this.updateFrequencyIsolator();
+                document.getElementById('isolatorHiValue').textContent = Math.round(val * 100) + '%';
+                this.updateCombSeqLFO('isolatorHi', this.combSeqEnabled ? 40 : 0);
             }
         };
         
@@ -1891,9 +2733,7 @@ class GranularSampler {
             this.updateLFO();
         });
     }
-    // CHANGED: Simplified keyboard controls - disabled R key and other alphabet shortcuts
     setupKeyboardControls() {
-        // Chromatic pitch mapping
         const chromaticKeys = {
             'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
             'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
@@ -1903,41 +2743,32 @@ class GranularSampler {
         document.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             
-            // Resume audio context on first interaction (iOS requirement)
             this.resumeAudioContext();
             
-            // Spacebar - play/stop
             if (key === ' ') {
                 e.preventDefault();
                 this.togglePlayback();
                 return;
             }
             
-            // DISABLED: M key - mute toggle (interferes with chromatic pitch)
-            // DISABLED: R key - record toggle (interferes with chromatic pitch)
-            // DISABLED: Other alphabet shortcuts that interfere with chromatic keys
-            
-            // Number keys - scan position
             if (key >= '0' && key <= '9') {
                 const position = key === '0' ? 0 : parseInt(key) / 9;
                 this.setScanPosition(position);
                 return;
             }
             
-            // Arrow keys - CHANGED: fine navigation to "micro" navigation
             if (key === 'arrowleft') {
                 e.preventDefault();
-                this.microScanBackward(); // CHANGED: from fineScanBackward
+                this.microScanBackward();
                 return;
             }
             
             if (key === 'arrowright') {
                 e.preventDefault();
-                this.microScanForward(); // CHANGED: from fineScanForward
+                this.microScanForward();
                 return;
             }
             
-            // Chromatic keys - pitch (NO CHANGES TO PRESERVE CHROMATIC FUNCTIONALITY)
             if (chromaticKeys.hasOwnProperty(key)) {
                 const semitones = chromaticKeys[key];
                 this.activePitchKeys.add(key);
@@ -1972,7 +2803,6 @@ class GranularSampler {
         keyButtons.forEach(btn => {
             const key = btn.dataset.key;
             
-            // Touch events for mobile
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 this.handleKeyDown(key);
@@ -1985,7 +2815,6 @@ class GranularSampler {
                 btn.classList.remove('active');
             });
             
-            // Mouse events for desktop
             btn.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 this.handleKeyDown(key);
@@ -2005,32 +2834,28 @@ class GranularSampler {
         });
     }
 
-        handleKeyDown(key) {
-        // Spacebar - play/stop
+    handleKeyDown(key) {
         if (key === ' ') {
             this.togglePlayback();
             return;
         }
         
-        // Number keys - scan position
         if (key >= '0' && key <= '9') {
             const position = key === '0' ? 0 : parseInt(key) / 9;
             this.setScanPosition(position);
             return;
         }
         
-        // Arrow keys - micro navigation
         if (key === 'ArrowLeft') {
-            this.microScanBackward(); // CHANGED: from fineScanBackward
+            this.microScanBackward();
             return;
         }
         
         if (key === 'ArrowRight') {
-            this.microScanForward(); // CHANGED: from fineScanForward
+            this.microScanForward();
             return;
         }
         
-        // Chromatic keys - pitch
         const chromaticKeys = {
             'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
             'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
@@ -2068,7 +2893,6 @@ class GranularSampler {
             'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
         };
         
-        // Use the highest pitch if multiple keys are pressed
         let highestSemitone = -999;
         for (const key of this.activePitchKeys) {
             if (chromaticKeys[key] > highestSemitone) {
@@ -2094,11 +2918,7 @@ class GranularSampler {
             document.getElementById('controls').style.display = 'grid';
             document.getElementById('mobileKeyboard').style.display = 'block';
             
-            // Resize grain canvas
             this.resizeGrainCanvas();
-            
-            // REMOVED: Auto-configuration prompt that was causing sluggishness
-            // No auto-configuration to keep it simple and lightweight
             
         } catch (error) {
             document.getElementById('status').textContent = 'Error loading audio file: ' + error.message;
@@ -2114,7 +2934,6 @@ class GranularSampler {
         }
     }
     
-    // ENHANCED: Updated waveform with deep teal colors
     drawWaveform() {
         if (!this.audioBuffer) {
             console.error('No audio buffer to draw');
@@ -2124,24 +2943,19 @@ class GranularSampler {
         const canvas = document.getElementById('waveform');
         const ctx = canvas.getContext('2d');
         
-        // Wait for next frame to ensure container is sized
         requestAnimationFrame(() => {
             const rect = canvas.getBoundingClientRect();
             const width = rect.width;
             const height = rect.height;
             
-            // Set canvas size
             canvas.width = width;
             canvas.height = height;
             
-            // Resize grain canvas too
             this.resizeGrainCanvas();
             
-            // Clear canvas
             ctx.fillStyle = 'transparent';
             ctx.fillRect(0, 0, width, height);
             
-            // Get audio data
             const data = this.audioBuffer.getChannelData(0);
             const step = Math.ceil(data.length / width);
             
@@ -2152,7 +2966,6 @@ class GranularSampler {
                 step: step
             });
             
-            // ENHANCED: Draw waveform with deep teal color
             ctx.strokeStyle = '#008080';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -2161,7 +2974,6 @@ class GranularSampler {
                 let min = 1.0;
                 let max = -1.0;
                 
-                // Find min and max in this chunk
                 for (let j = 0; j < step; j++) {
                     const idx = (i * step) + j;
                     if (idx < data.length) {
@@ -2171,7 +2983,6 @@ class GranularSampler {
                     }
                 }
                 
-                // Convert to canvas coordinates
                 const yMin = (1 + min) * height / 2;
                 const yMax = (1 + max) * height / 2;
                 
@@ -2185,12 +2996,10 @@ class GranularSampler {
             
             ctx.stroke();
             
-            // ENHANCED: Add electrical glow effect variants
             ctx.shadowColor = '#006666';
             ctx.shadowBlur = 4;
             ctx.stroke();
             
-            // Add waveform glow animation area
             const glowDiv = document.createElement('div');
             glowDiv.className = 'waveform-glow';
             canvas.parentNode.appendChild(glowDiv);
@@ -2205,31 +3014,27 @@ class GranularSampler {
         this.scanPosition = position;
         this.loopPosition = position * this.audioBuffer.duration;
         
-        // Update playhead visual
         const playhead = document.getElementById('playhead');
         if (playhead) {
             playhead.style.left = (position * 100) + '%';
         }
         
-        // Update position display
         document.getElementById('loopPos').textContent = this.loopPosition.toFixed(2) + 's';
         document.getElementById('currentPos').textContent = this.loopPosition.toFixed(2) + 's';
     }
 
-    // CHANGED: Renamed from fineScanBackward to microScanBackward
     microScanBackward() {
         if (!this.audioBuffer) return;
         
-        const microIncrement = 0.01; // 1% increment
+        const microIncrement = 0.01;
         const newPosition = Math.max(0, this.scanPosition - microIncrement);
         this.setScanPosition(newPosition);
     }
 
-    // CHANGED: Renamed from fineScanForward to microScanForward
     microScanForward() {
         if (!this.audioBuffer) return;
         
-        const microIncrement = 0.01; // 1% increment
+        const microIncrement = 0.01;
         const newPosition = Math.min(1, this.scanPosition + microIncrement);
         this.setScanPosition(newPosition);
     }
@@ -2237,7 +3042,6 @@ class GranularSampler {
     async togglePlayback() {
         if (!this.audioBuffer) return;
         
-        // Resume audio context on first interaction (iOS requirement)
         await this.resumeAudioContext();
         
         if (this.isPlaying) {
@@ -2250,7 +3054,6 @@ class GranularSampler {
     async startPlayback() {
         if (!this.audioBuffer || this.isPlaying) return;
         
-        // Make sure audio context is running
         await this.resumeAudioContext();
         
         console.log('Starting playback, audio context state:', this.audioContext.state);
@@ -2260,7 +3063,6 @@ class GranularSampler {
         document.getElementById('playButton').textContent = '⏸ STOP';
         document.getElementById('playButton').classList.add('playing');
         
-        // Start grain generation
         this.scheduleGrains();
     }
     
@@ -2270,7 +3072,6 @@ class GranularSampler {
         document.getElementById('playButton').textContent = '▶ PLAY';
         document.getElementById('playButton').classList.remove('playing');
         
-        // Stop all grains
         this.grains.forEach(grain => {
             if (grain.source) {
                 grain.source.stop();
@@ -2283,20 +3084,19 @@ class GranularSampler {
     scheduleGrains() {
         if (!this.isPlaying) return;
         
-        // Generate grains based on density
         for (let i = 0; i < this.density; i++) {
             const delay = (i / this.density) * (this.grainSize / 1000);
             setTimeout(() => {
                 if (this.isPlaying) this.createGrain();
-            }, delay * 1000);
+                }, delay * 1000);
         }
         
-        // Schedule next batch with time stretch
         const nextScheduleTime = this.grainSize / this.timeStretch;
         setTimeout(() => {
             if (this.isPlaying) this.scheduleGrains();
         }, nextScheduleTime);
     }
+    
     createGrain() {
         if (!this.audioBuffer) return;
         
@@ -2308,66 +3108,59 @@ class GranularSampler {
         source.buffer = this.audioBuffer;
         source.playbackRate.value = this.currentPitch;
         
-        // Apply window scan randomization
         const scanRange = (this.windowScan / 100) * this.audioBuffer.duration;
         const randomOffset = (Math.random() - 0.5) * scanRange;
         let startTime;
 
         if (this.wrapEnabled) {
-            // WRAP mode: Fast stationary loop at current scan position
             startTime = this.scanPosition * this.audioBuffer.duration;
-            startTime += randomOffset * 0.1; // Reduced randomization for tighter wrap
+            startTime += randomOffset * 0.1;
         } else if (this.looperEnabled) {
-            // LOOP mode: Progressive loop through waveform
             startTime = this.loopPosition;
             startTime += randomOffset;
             
-            // Advance loop position
             const grainAdvancement = (this.grainSize / 1000) / this.timeStretch;
             this.loopPosition += grainAdvancement;
             
-            // Wrap around to beginning when reaching end
             if (this.loopPosition >= this.audioBuffer.duration) {
                 this.loopPosition = 0;
             }
             
-            // Update scan position for visual feedback
             this.scanPosition = this.loopPosition / this.audioBuffer.duration;
             
-            // Update playhead visual
             const playhead = document.getElementById('playhead');
             if (playhead) {
                 playhead.style.left = (this.scanPosition * 100) + '%';
             }
             
-            // Update position displays
             document.getElementById('loopPos').textContent = this.loopPosition.toFixed(2) + 's';
             document.getElementById('currentPos').textContent = this.loopPosition.toFixed(2) + 's';
         } else {
-            // Normal mode: Use current scan position
             startTime = this.scanPosition * this.audioBuffer.duration;
             startTime += randomOffset;
         }
 
         startTime = Math.max(0, Math.min(startTime, this.audioBuffer.duration - (this.grainSize / 1000)));
         
-        // Grain envelope using selected shape
         const grainDuration = this.grainSize / 1000;
         const now = this.audioContext.currentTime;
         
-        // Apply envelope shape
         this.applyGrainEnvelope(gainNode, now, grainDuration, this.grainShape);
         
         // Connect: source -> gain -> filter
         source.connect(gainNode);
         gainNode.connect(this.filterNode);
         
+        // NEW: Connect grain to ring mod grain source if that's the selected source
+        if (this.ringModSourceType === 'grains') {
+            gainNode.connect(this.ringModGrainSource);
+        }
+        
         try {
             source.start(now, startTime, grainDuration);
             source.stop(now + grainDuration);
             console.log('Grain started successfully');
             
-            // ENHANCED: Add bigger blood red grain particle animation
             if (this.audioBuffer) {
                 const playheadPercent = (startTime / this.audioBuffer.duration);
                 const waveformCanvas = document.getElementById('waveform');
@@ -2381,17 +3174,14 @@ class GranularSampler {
             console.error('Error starting grain:', error);
         }
         
-        // Track grain
         const grain = { source, startTime: now, duration: grainDuration };
         this.grains.push(grain);
         
-        // Clean up finished grains
         source.onended = () => {
             const index = this.grains.indexOf(grain);
             if (index > -1) this.grains.splice(index, 1);
         };
         
-        // Update display with pulse animation
         const activeGrainsElement = document.getElementById('activeGrains');
         activeGrainsElement.textContent = this.grains.length;
         activeGrainsElement.classList.add('pulsing');
@@ -2405,10 +3195,8 @@ class GranularSampler {
         const samples = Math.floor(duration * sampleRate);
         const envelope = this.getGrainEnvelope(shape, samples);
         
-        // Apply envelope using gain automation
         gainNode.gain.setValueAtTime(0, startTime);
         
-        // Simple envelope application - start, peak, end
         switch (shape) {
             case 'blackman':
             case 'hanning':
@@ -2440,15 +3228,13 @@ class GranularSampler {
                 mimeType: 'audio/webm;codecs=opus'
             };
             
-            // Check if the mimeType is supported
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                // Fallback options
                 if (MediaRecorder.isTypeSupported('audio/webm')) {
                     options.mimeType = 'audio/webm';
                 } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
                     options.mimeType = 'audio/mp4';
                 } else {
-                    options.mimeType = ''; // Let browser choose
+                    options.mimeType = '';
                 }
             }
             
@@ -2468,7 +3254,6 @@ class GranularSampler {
             this.mediaRecorder.start();
             this.isRecording = true;
             
-            // Update UI
             const recordButton = document.getElementById('recordButton');
             recordButton.textContent = '⏹ STOP';
             recordButton.classList.add('recording');
@@ -2485,7 +3270,6 @@ class GranularSampler {
             this.mediaRecorder.stop();
             this.isRecording = false;
             
-            // Update UI
             const recordButton = document.getElementById('recordButton');
             recordButton.textContent = '⬤ REC';
             recordButton.classList.remove('recording');
@@ -2507,7 +3291,6 @@ class GranularSampler {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         
-        // Create filename with timestamp
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, -5);
         a.download = `grains_${timestamp}.webm`;
@@ -2515,11 +3298,9 @@ class GranularSampler {
         a.href = url;
         a.click();
         
-        // Clean up
         URL.revokeObjectURL(url);
         this.recordedChunks = [];
         
-        // Visual feedback
         const recordButton = document.getElementById('recordButton');
         recordButton.textContent = '✅ SAVED';
         recordButton.classList.add('success');
@@ -2532,15 +3313,14 @@ class GranularSampler {
     }
 }
 
-// ENHANCED: Initialize with visual effects and better defaults - REMOVED auto-config
+// Enhanced initialization with visual effects and better defaults
 document.addEventListener('DOMContentLoaded', () => {
-    // Add SVG filters to document if not present with RETAINED 0.5 baseFrequency
+    // Add SVG filters to document if not present
     if (!document.querySelector('#noise-filter')) {
         const svgFilters = document.createElement('div');
         svgFilters.innerHTML = `
             <svg class="svg-filters-container" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                    <!-- Noise Filter with RETAINED 0.5 baseFrequency -->
                     <filter id="noise-filter" x="0%" y="0%" width="100%" height="100%">
                         <feTurbulence baseFrequency="0.5" numOctaves="1" result="noise"/>
                         <feColorMatrix in="noise" type="saturate" values="0"/>
@@ -2550,7 +3330,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <feComposite operator="over" in2="SourceGraphic"/>
                     </filter>
                     
-                    <!-- Strong Noise Filter -->
                     <filter id="noise-filter-strong" x="0%" y="0%" width="100%" height="100%">
                         <feTurbulence baseFrequency="0.8" numOctaves="2" result="noise"/>
                         <feColorMatrix in="noise" type="saturate" values="0"/>
@@ -2571,33 +3350,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set default states - LOOP and WRAP OFF
     const looperToggle = document.getElementById('looperToggle');
     if (looperToggle) {
-        looperToggle.classList.remove('active'); // Remove active class for OFF state
+        looperToggle.classList.remove('active');
         looperToggle.textContent = '↻ LOOP';
     }
     
     const wrapToggle = document.getElementById('wrapToggle');
     if (wrapToggle) {
-        wrapToggle.classList.remove('active'); // Remove active class for OFF state
+        wrapToggle.classList.remove('active');
         wrapToggle.textContent = '⬜ WRAP';
     }
     
     // Set default comb sequencer toggle text
     const combSeqToggle = document.getElementById('stringSeqToggle');
     if (combSeqToggle) {
-        combSeqToggle.textContent = '◼ OFF';
+        combSeqToggle.textContent = 'OFF';
+    }
+    
+    // Set default envelope toggle text
+    const envelopeToggle = document.getElementById('envelopeLoopToggle');
+    if (envelopeToggle) {
+        envelopeToggle.textContent = 'Loop OFF';
     }
     
     // Enhanced initialization effects
     setTimeout(() => {
-        // Trigger initial animations
         const header = document.querySelector('.main-header');
         if (header) {
             header.style.animation = 'none';
-            header.offsetHeight; // Trigger reflow
+            header.offsetHeight;
             header.style.animation = 'fadeInScale 1s ease-out';
         }
         
-        // Initialize visual effects
         if (window.granularSampler) {
             window.granularSampler.setupVisualEffects();
         }
@@ -2610,7 +3393,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeTimeout = setTimeout(() => {
             if (window.granularSampler && window.granularSampler.grainCanvas) {
                 window.granularSampler.resizeGrainCanvas();
-                window.granularSampler.drawWaveform(); // Redraw waveform on resize
+                window.granularSampler.drawWaveform();
             }
         }, 250);
     });
@@ -2628,60 +3411,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // DISABLED: MIDI functionality commented out for future reference
-    /*
-    // MIDI Controller (disabled but kept for future reference)
-    const MIDIController = {
-        midiAccess: null,
-        inputPorts: [],
-        
-        async initialize() {
-            if (!navigator.requestMIDIAccess) {
-                console.warn('MIDI not supported in this browser');
-                return false;
-            }
-            
-            try {
-                this.midiAccess = await navigator.requestMIDIAccess();
-                this.setupInputs();
-                this.midiAccess.onstatechange = () => this.setupInputs();
-                console.log('MIDI controller initialized');
-                return true;
-            } catch (error) {
-                console.error('MIDI initialization failed:', error);
-                return false;
-            }
-        }
-        // ... rest of MIDI functionality commented out
-    };
-    */
-    
     console.log('🎵 GRAINS Enhanced Granular Sampler Ready!');
-    console.log('Features enabled:');
-    console.log('- Deep teal visual theme');
-    console.log('- Bigger blood red grain particles (2x size)');
-    console.log('- Comb filter sequencer with soft clip');
-    console.log('- Extended LFO range (1-1000Hz)');
-    console.log('- Enhanced phaser audibility');
-    console.log('- Preset management');
-    console.log('- Fixed LFO dropdown styling');
-    console.log('- Simplified keyboard controls (no alphabet shortcuts)');
-    console.log('- MIDI functionality disabled but preserved');
-    console.log('- Auto-configuration removed for better performance');
+    console.log('New Features:');
+    console.log('- Comb Seq LFO system with parameter modulation');
+    console.log('- Enhanced ring modulator with 3 sources');
+    console.log('- WARP module with 20ms ping-pong loop');
+    console.log('- Enhanced spectral freeze with resonance');
+    console.log('- Multi-tap granular delay with aging and flutter');
+    console.log('- Chromatic envelope with 5-stage editing');
+    console.log('- 3-band frequency isolator');
+    console.log('- Updated button colors and LFO indicators');
+    console.log('- Enhanced time-stretch range (0.01-4x)');
 });
 
 // Performance optimization: Cleanup on page unload
 window.addEventListener('beforeunload', () => {
     if (window.granularSampler) {
-        // Stop all audio processing
         window.granularSampler.stopPlayback();
         
-        // Disconnect audio nodes
         if (window.granularSampler.audioContext) {
             window.granularSampler.audioContext.close();
         }
         
-        // Clear intervals and timeouts
         clearInterval();
         clearTimeout();
     }
@@ -2699,7 +3450,6 @@ window.addEventListener('unhandledrejection', (event) => {
         status.classList.add('error');
     }
     
-    // Try to recover by resetting the audio context
     if (window.granularSampler && event.reason.name === 'InvalidStateError') {
         setTimeout(() => {
             window.granularSampler.initAudio().catch(console.error);
@@ -2708,3 +3458,191 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 console.log('GRAINS Enhanced Granular Sampler - All systems loaded');
+
+// Mobile-specific audio context resume improvement
+function improveAudioReliability() {
+    if (window.granularSampler && window.granularSampler.audioContext) {
+        const audioContext = window.granularSampler.audioContext;
+        
+        // Multiple resume attempts for mobile reliability
+        const resumeAttempts = [
+            () => audioContext.resume(),
+            () => {
+                // Create and play a silent buffer to "prime" the audio context
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start();
+                return audioContext.resume();
+            },
+            () => {
+                // Force user interaction detection
+                document.addEventListener('touchstart', () => audioContext.resume(), { once: true });
+                document.addEventListener('click', () => audioContext.resume(), { once: true });
+                return audioContext.resume();
+            }
+        ];
+        
+        let attemptIndex = 0;
+        const tryResume = () => {
+            if (attemptIndex < resumeAttempts.length && audioContext.state !== 'running') {
+                resumeAttempts[attemptIndex]()
+                    .then(() => {
+                        if (audioContext.state === 'running') {
+                            console.log(`Audio context resumed successfully (attempt ${attemptIndex + 1})`);
+                        } else {
+                            attemptIndex++;
+                            setTimeout(tryResume, 100);
+                        }
+                    })
+                    .catch(() => {
+                        attemptIndex++;
+                        setTimeout(tryResume, 100);
+                    });
+            }
+        };
+        
+        // Start resume attempts when audio is needed
+        if (audioContext.state === 'suspended') {
+            tryResume();
+        }
+    }
+}
+
+// Enhanced mobile-specific event handling
+document.addEventListener('touchstart', improveAudioReliability, { once: true });
+document.addEventListener('click', improveAudioReliability, { once: true });
+
+// Visibility API for better mobile performance
+document.addEventListener('visibilitychange', () => {
+    if (window.granularSampler) {
+        if (document.hidden) {
+            // Pause animations and reduce CPU usage when app is backgrounded
+            document.body.classList.add('paused');
+        } else {
+            // Resume animations when app comes back to foreground
+            document.body.classList.remove('paused');
+            improveAudioReliability();
+        }
+    }
+});
+
+// Additional cookie and storage checks for mobile reliability
+function checkMobileCompatibility() {
+    const checks = {
+        audioContext: !!(window.AudioContext || window.webkitAudioContext),
+        mediaRecorder: !!window.MediaRecorder,
+        localStorage: (() => {
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        })(),
+        webAudio: (() => {
+            try {
+                const context = new (window.AudioContext || window.webkitAudioContext)();
+                context.close();
+                return true;
+            } catch (e) {
+                return false;
+            }
+        })()
+    };
+    
+    const failedChecks = Object.entries(checks).filter(([key, value]) => !value);
+    
+    if (failedChecks.length > 0) {
+        console.warn('Mobile compatibility issues detected:', failedChecks.map(([key]) => key));
+        
+        const status = document.getElementById('status');
+        if (status && failedChecks.some(([key]) => ['audioContext', 'webAudio'].includes(key))) {
+            status.textContent = 'Audio not supported on this device. Try updating your browser.';
+            status.classList.add('error');
+        }
+    }
+    
+    return failedChecks.length === 0;
+}
+
+// Run mobile compatibility check
+setTimeout(checkMobileCompatibility, 1000);
+
+// Enhanced service worker registration for offline capability (optional)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        // Only register if we have a service worker file
+        fetch('/sw.js', { method: 'HEAD' })
+            .then(() => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            })
+            .catch(() => {
+                // No service worker file found, that's okay
+            });
+    });
+}
+
+// Final mobile-specific optimizations
+if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    // Mobile-specific optimizations
+    document.addEventListener('DOMContentLoaded', () => {
+        // Reduce animation complexity on mobile
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (max-width: 768px) {
+                .particle { animation-duration: 12s !important; }
+                .dust-particle { animation-duration: 6s !important; }
+                .grain-particle-enhanced { animation-duration: 1s !important; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add mobile-specific touch improvements
+        document.body.style.touchAction = 'manipulation';
+        document.body.style.userSelect = 'none';
+        
+        // Prevent double-tap zoom on buttons
+        const buttons = document.querySelectorAll('button, input, select');
+        buttons.forEach(button => {
+            button.style.touchAction = 'manipulation';
+        });
+    });
+}
+
+// Export for potential module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { GranularSampler };
+}
+
+// Global error recovery system
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.error('Global error:', { msg, url, lineNo, columnNo, error });
+    
+    // Attempt to recover audio context if it failed
+    if (msg.includes('AudioContext') || msg.includes('audio')) {
+        setTimeout(() => {
+            if (window.granularSampler) {
+                window.granularSampler.initAudio().catch(console.error);
+            }
+        }, 1000);
+    }
+    
+    return false; // Don't prevent default error handling
+};
+
+// Final console message
+console.log(`
+GRAINS Enhanced Granular Sampler v2.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ready for granular synthesis! 
+`);
+
