@@ -41,7 +41,7 @@ https://kenneth-rakentine.github.io/Grains/
 Use **RESET** button to restore all parameters to defaults<br>
 Use **MUTE** button to toggle audio output<br>
 Use **LOOP** button to enable/disable looping at current position<br>
-Use **WRAP** button to lock in a stationary micro-loop within current playhead position [only works when LOOP is enabled]<br>
+Use **WARP** button to enable/disable micro-loop warping effect at current position<br>
 
 
 ### **RECORDING AUDIO**
@@ -93,6 +93,13 @@ Phaser Depth (0-100%) - Frequency sweep range<br>
 Feedback (0-90%) - Phaser resonance amount<br>
 Gain Boost (0.5-3x) - Output amplification with harmonic saturation<br>
 
+**WARP MODULE**
+<br>
+WARP Toggle - Enable/disable high-frequency micro-loop effect<br>
+Loop Rate (1-100Hz) - Micro-loop repetition speed<br>
+Start Point (0-20ms) - Offset within micro-loop section<br>
+Loop Length (1-20ms) - Duration of micro-loop section<br>
+
 **3D PANNER & FREQUENCY SHIFTER**
 <br>
 X-Axis Depth (0-100%) - Horizontal movement range in binaural field<br>
@@ -135,10 +142,10 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 - 
 <br>
-![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
+![LOGO](GRAINSconsoleIMG.png)
 <br>
 ## SIGNAL FLOW
-GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → OUTPUT
+GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → ENVELOPE → ISOLATOR → OUTPUT
 
 
 

@@ -47,7 +47,7 @@
                     </div>
                 </div>
                 <div class="scope-controls">
-                    <span class="scope-label">OSC-1M</span>
+                    <span class="scope-label">OSC-1M v.13</span>
                     <div class="scope-indicators">
                         <div class="indicator active"></div>
                         <div class="indicator"></div>
@@ -64,7 +64,6 @@
             <button class="play-button" id="playButton">▶ PLAY</button>
             <button class="record-button" id="recordButton">⬤ REC</button>
             <button class="loop-button" id="looperToggle">↻ LOOP</button>
-            <button id="wrapToggle" class="control-btn">&#9618; WRAP</button>
             <button class="reset-button" id="resetButton">⟲ RESET</button>
         </div>
     </div>
@@ -252,7 +251,7 @@
                     </div>
                     <div class="slider-item compact">
                         <label>Time Stretch <span id="timeStretchValue">1.0x</span></label>
-                        <input type="range" id="timeStretch" min="0.01" max="4" value="1" step="0.01">
+                        <input type="range" id="timeStretch" min="0.1" max="4" value="1" step="0.01">
                         <div class="lfo-indicator" id="timeStretchLfoIndicator"></div>
                     </div>
                 </div>
@@ -465,7 +464,7 @@
                 </div>
             </div>
 
-            <!-- NEW: WARP Module -->
+            <!-- WARP Module -->
             <div class="control-panel">
                 <h3>WARP Module</h3>
                 <div class="panel-icon">
@@ -502,6 +501,9 @@
                         <label>Loop Length <span id="warpLengthValue">20ms</span></label>
                         <input type="range" id="warpLength" min="1" max="20" value="20" step="0.1">
                         <div class="lfo-indicator" id="warpLengthLfoIndicator"></div>
+                    </div>
+                    <div class="button-group">
+                        <button id="warpToggle" class="control-btn">WARP</button>
                     </div>
                 </div>
             </div>
@@ -740,7 +742,7 @@
                 </div>
             </div>
 
-            <!-- NEW: Chromatic Envelope -->
+            <!-- Chromatic Envelope -->
             <div class="control-panel">
                 <h3>Chromatic Envelope</h3>
                 <div class="panel-icon">
@@ -775,7 +777,7 @@
                 </div>
             </div>
 
-            <!-- NEW: 3-Band Frequency Isolator -->
+            <!-- 3-Band Frequency Isolator -->
             <div class="control-panel">
                 <h3>3-Band Frequency Isolator</h3>
                 <div class="panel-icon">
@@ -841,7 +843,7 @@
                         <li><strong>MUTE</strong> - Toggle audio mute</li>
                         <li><strong>RECORD</strong> - Record & save your realtime audio</li>
                         <li><strong>LOOP</strong> - Scrolls playhead through entire waveform</li>
-                        <li><strong>WRAP</strong> - Locks in a high frequency micro-loop</li>
+                        <li><strong>WARP</strong> - Locks in a high frequency micro-loop</li>
                     </ul>
                 </div>
             </div>

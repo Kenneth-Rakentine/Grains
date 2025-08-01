@@ -589,6 +589,7 @@ body::before {
         0 0 8px var(--teal-glow),
         inset 0 2px 4px rgba(255,255,255,0.3);
 }
+
 /* Transport Bar - Reorganized Layout */
 .transport-bar-container {
     display: flex;
@@ -886,6 +887,7 @@ body::before {
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+
 /* Enhanced Slider Styles with Wider Caps */
 .slider-group {
     display: flex;
@@ -1692,32 +1694,6 @@ button:active {
     color: white;
     border-color: var(--teal-primary);
     font-size: 10px;
-}
-/* WRAP button glow when both LOOP and WRAP are active */
-#wrapToggle.wrap-loop-active {
-    background: linear-gradient(135deg, #795243 0%, #5d3e32 100%);
-    color: white;
-    box-shadow: 
-        0 0 20px var(--playhead-green), 
-        0 0 30px var(--playhead-green), 
-        0 0 40px var(--playhead-green);
-    border: 1px solid var(--playhead-green);
-    animation: wrap-pulse 2s ease-in-out infinite;
-}
-
-@keyframes wrap-pulse {
-    0%, 100% {
-        box-shadow: 
-            0 0 20px var(--playhead-green), 
-            0 0 30px var(--playhead-green), 
-            0 0 40px var(--playhead-green);
-    }
-    50% {
-        box-shadow: 
-            0 0 25px var(--playhead-green), 
-            0 0 35px var(--playhead-green), 
-            0 0 50px var(--playhead-green);
-    }
 }
 
 /* Enhanced Grain Animation Effects - 2x bigger particles */

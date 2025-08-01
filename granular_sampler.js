@@ -1,3 +1,13 @@
+// Console welcome message
+console.log(`
+░░░░░██████╗░██████╗░░█████╗░██╗███╗░░██╗░██████╗░░░░░
+░░░░██╔════╝░██╔══██╗██╔══██╗██║████╗░██║██╔════╝░░░░░
+░░░░██║░░██╗░██████╔╝███████║██║██╔██╗██║╚█████╗░░░░░░
+░░░░██║░░╚██╗██╔══██╗██╔══██║██║██║╚████║░╚═══██╗░░░░░
+░░░░╚██████╔╝██║░░██║██║░░██║██║██║░╚███║██████╔╝░░░░░
+░░░░░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝╚═╝░░╚══╝╚═════╝░░░░░░
+`);
+
 class GranularSampler {
     constructor() {
         this.audioContext = null;
@@ -7,7 +17,7 @@ class GranularSampler {
         this.playheadPosition = 0;
         this.loopPosition = 0;
         this.looperEnabled = false;
-        this.wrapEnabled = false;
+        this.wrapEnabled = false; // CHANGED: Default to OFF
         this.scanPosition = 0;
         this.currentPitch = 1.0;
         this.activePitchKeys = new Set();
@@ -23,7 +33,7 @@ class GranularSampler {
         this.density = 4;
         this.windowScan = 0;
         this.grainShape = 'blackman';
-        this.timeStretch = 1.0;
+        this.timeStretch = 1.0; // REVERTED: Back to original v11 range
         
         // Filter & LFO
         this.filterNode = null;
@@ -276,7 +286,7 @@ class GranularSampler {
             isolatorLo: 1,
             isolatorMid: 1,
             isolatorHi: 1,
-            wrapEnabled: false
+            wrapEnabled: false // CHANGED: Default to OFF
         };
     }
 
@@ -716,39 +726,42 @@ class GranularSampler {
             this.phaserSaturation.connect(this.phaserMixNode);
         }
     }
+
     // NEW: Initialize WARP Module
-    async initWarpModule() {
-        // Create delay node for micro-loop
-        this.wrapDelayNode = this.audioContext.createDelay(0.02); // 20ms max
-        this.wrapDelayNode.delayTime.value = this.warpLength / 1000; // Convert ms to seconds
-        
-        // Create feedback for ping-pong effect
-        this.warpFeedbackNode = this.audioContext.createGain();
-        this.warpFeedbackNode.gain.value = 0.8; // High feedback for sustained loop
-        
-        // Create gain node for warp effect
-        this.warpGainNode = this.audioContext.createGain();
-        this.warpGainNode.gain.value = 0; // Start disabled
-        
-        // Create rate control using oscillator
-        this.warpRateOsc = this.audioContext.createOscillator();
-        this.warpRateOsc.type = 'square';
-        this.warpRateOsc.frequency.value = this.warpRate;
-        
-        this.warpRateGain = this.audioContext.createGain();
-        this.warpRateGain.gain.value = 0;
-        
-        this.warpRateOsc.connect(this.warpRateGain);
-        this.warpRateOsc.start();
-        
-        // Connect warp chain
-        this.wrapDelayNode.connect(this.warpFeedbackNode);
-        this.warpFeedbackNode.connect(this.wrapDelayNode); // Feedback loop
-        this.wrapDelayNode.connect(this.warpGainNode);
-        
-        // Setup canvas for visualization
-        this.setupWarpVisualization();
-    }
+   async initWarpModule() {
+    // Create delay node for micro-loop
+    this.wrapDelayNode = this.audioContext.createDelay(0.02);
+    this.wrapDelayNode.delayTime.value = this.warpLength / 1000;
+    
+    // Create feedback for ping-pong effect
+    this.warpFeedbackNode = this.audioContext.createGain();
+    this.warpFeedbackNode.gain.value = 0; // Start with no feedback
+    
+    // Create wet/dry mix nodes for proper bypass
+    this.warpWetNode = this.audioContext.createGain();
+    this.warpDryNode = this.audioContext.createGain();
+    this.warpWetNode.gain.value = 0; // Start dry
+    this.warpDryNode.gain.value = 1; // Start dry
+    
+    // Create rate control using oscillator
+    this.warpRateOsc = this.audioContext.createOscillator();
+    this.warpRateOsc.type = 'triangle'; // Smoother modulation
+    this.warpRateOsc.frequency.value = this.warpRate;
+
+    this.warpRateGain = this.audioContext.createGain();
+    this.warpRateGain.gain.value = 0; // Start disconnected
+
+    this.warpRateOsc.connect(this.warpRateGain);
+    this.warpRateOsc.start();
+    
+    // Connect warp chain
+    this.wrapDelayNode.connect(this.warpFeedbackNode);
+    this.warpFeedbackNode.connect(this.wrapDelayNode); // Feedback loop
+    this.wrapDelayNode.connect(this.warpWetNode);
+    
+    // Setup canvas for visualization
+    this.setupWarpVisualization();
+}
 
     // NEW: Setup WARP visualization
     setupWarpVisualization() {
@@ -760,65 +773,75 @@ class GranularSampler {
     }
 
     // NEW: Animate WARP display
-    animateWarpDisplay() {
-        if (!this.warpCtx || !this.wrapEnabled) {
-            requestAnimationFrame(() => this.animateWarpDisplay());
-            return;
-        }
-        
-        const canvas = this.warpCanvas;
-        const ctx = this.warpCtx;
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = 45;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (this.wrapEnabled && this.looperEnabled) {
-            const time = this.audioContext.currentTime;
-            
-            // Draw loop visualization
-            ctx.strokeStyle = '#008080';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            
-            // Draw waveform around circle
-            for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
-                const t = (angle / (Math.PI * 2)) * this.warpLength + time * this.warpRate;
-                const wave = Math.sin(t * 10) * 0.3;
-                const x = centerX + Math.cos(angle) * (radius + wave * 10);
-                const y = centerY + Math.sin(angle) * (radius + wave * 10);
-                
-                if (angle === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            
-            ctx.closePath();
-            ctx.stroke();
-            
-            // Add glow effect
-            ctx.shadowColor = '#008080';
-            ctx.shadowBlur = 4;
-            ctx.stroke();
-            
-            // Draw start point indicator
-            const startAngle = (this.warpStart / this.warpLength) * Math.PI * 2;
-            const startX = centerX + Math.cos(startAngle) * radius;
-            const startY = centerY + Math.sin(startAngle) * radius;
-            
-            ctx.fillStyle = '#ff4444';
-            ctx.beginPath();
-            ctx.arc(startX, startY, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        
+animateWarpDisplay() {
+    if (!this.warpCtx) {
         requestAnimationFrame(() => this.animateWarpDisplay());
+        return;
     }
+    
+    const canvas = this.warpCanvas;
+    const ctx = this.warpCtx;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 45;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (this.wrapEnabled) { // CHANGED: Removed loop dependency
+        const time = this.audioContext.currentTime;
+        
+        // Draw loop visualization
+        ctx.strokeStyle = '#008080';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        // Draw waveform around circle
+        for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+            const t = (angle / (Math.PI * 2)) * this.warpLength + time * this.warpRate;
+            const wave = Math.sin(t * 10) * 0.3;
+            const x = centerX + Math.cos(angle) * (radius + wave * 10);
+            const y = centerY + Math.sin(angle) * (radius + wave * 10);
+            
+            if (angle === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Add glow effect
+        ctx.shadowColor = '#008080';
+        ctx.shadowBlur = 4;
+        ctx.stroke();
+        
+        // Draw start point indicator
+        const maxLength = 20; // Max warp length
+        const startAngle = (this.warpStart / maxLength) * Math.PI * 2;
+        const startX = centerX + Math.cos(startAngle) * radius;
+        const startY = centerY + Math.sin(startAngle) * radius;
 
+        ctx.fillStyle = '#ff4444';
+        ctx.shadowColor = '#ff4444';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(startX, startY, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw length arc
+        const lengthAngle = (this.warpLength / maxLength) * Math.PI * 2;
+        ctx.strokeStyle = '#ffaa00';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 10, startAngle, startAngle + lengthAngle);
+        ctx.stroke();
+    }
+    
+    requestAnimationFrame(() => this.animateWarpDisplay());
+}
     async init3DPannerAndFreqShifter() {
         // Create 3D panner node
         this.pannerNode = this.audioContext.createPanner();
@@ -1394,7 +1417,6 @@ class GranularSampler {
         this.isolatorNodes.mid.gain.connect(this.isolatorOutputNode);
         this.isolatorNodes.hi.gain.connect(this.isolatorOutputNode);
     }
-
     connectAudioNodes() {
         // Enhanced signal path with new modules
         // Grains → Filter → Vocoder → Wavefolder → Ring Mod → Spectral Freeze → Phaser → WARP → 3D Panner → Freq Shifter → Delay → Reverb → Comb Seq → Envelope → Isolator → Output
@@ -1423,13 +1445,15 @@ class GranularSampler {
         this.spectralFreezeNode.connect(this.phaserDryNode);
         this.spectralFreezeNode.connect(this.phaserNodes[0]);
         
-        // Phaser to WARP (NEW)
-        this.phaserDryNode.connect(this.wrapDelayNode);
-        this.phaserMixNode.connect(this.wrapDelayNode);
-        
-        // WARP to 3D panner
-        this.wrapDelayNode.connect(this.pannerNode);
-        this.warpGainNode.connect(this.pannerNode); // Warp effect output
+      // Phaser to WARP (NEW)
+this.phaserDryNode.connect(this.warpDryNode);
+this.phaserMixNode.connect(this.warpDryNode);
+this.phaserDryNode.connect(this.wrapDelayNode);
+this.phaserMixNode.connect(this.wrapDelayNode);
+
+// WARP output to 3D panner
+this.warpDryNode.connect(this.pannerNode);
+this.warpWetNode.connect(this.pannerNode);
         
         // 3D panner to frequency shifter
         this.pannerNode.connect(this.freqShifterDryNode);
@@ -1661,7 +1685,7 @@ class GranularSampler {
         document.getElementById('lfoShape').value = 'sine';
         document.getElementById('muteButton').classList.remove('active');
         document.getElementById('stringSeqToggle').classList.remove('active');
-        document.getElementById('wrapToggle').classList.remove('active');
+        document.getElementById('warpToggle').classList.remove('active'); // CHANGED: Update warp button
         document.getElementById('envelopeLoopToggle').classList.remove('active');
         document.getElementById('envelopeLoopToggle').textContent = 'Loop OFF';
         
@@ -1669,8 +1693,8 @@ class GranularSampler {
         this.switchRingModSource('grains');
         this.updateVolumeBoost();
         this.updateCombSequencer();
-        this.updateCombSeqButton(); // NEW
-        this.updateWrapGlow();
+        this.updateCombSeqButton();
+        this.updateWarp(); // NEW: Update warp
         
         // Reset all comb seq LFOs
         this.combSeqLfos.forEach((lfoData, paramName) => {
@@ -1744,14 +1768,12 @@ class GranularSampler {
         }
     }
     
-    // Enhanced Ring Mod with three sources
     updateRingModMix() {
         const mix = this.ringModMix / 100;
         this.ringModMixNode.gain.value = mix;
         this.ringModDryNode.gain.value = 1 - mix;
     }
 
-    // Enhanced Spectral Freeze with resonance
     updateSpectralFreeze() {
         const feedbackAmount = this.spectralFreeze / 100 * 0.95;
         this.spectralFeedbackNode.gain.value = feedbackAmount;
@@ -1783,23 +1805,43 @@ class GranularSampler {
         this.phaserDryNode.gain.value = 1 - wetAmount * 0.5;
     }
 
-    // NEW: Update WARP module
-    updateWarp() {
-        if (this.wrapEnabled && this.looperEnabled) {
-            // Enable warp effect
-            this.warpGainNode.gain.value = 1;
-            this.warpRateOsc.frequency.value = this.warpRate;
-            this.wrapDelayNode.delayTime.value = this.warpLength / 1000;
-            
-            // Update feedback for ping-pong effect
-            this.warpFeedbackNode.gain.value = 0.85;
-        } else {
-            // Disable warp effect
-            this.warpGainNode.gain.value = 0;
-            this.warpFeedbackNode.gain.value = 0;
+    // NEW: Update WARP module - CHANGED: Remove loop dependency
+  updateWarp() {
+    if (this.wrapEnabled) {
+        // Enable warp effect - wet path
+        this.warpWetNode.gain.value = 1;
+        this.warpDryNode.gain.value = 0;
+        this.warpFeedbackNode.gain.value = 0.85;
+        
+        // Calculate base delay time with start offset
+        const baseDelayTime = (this.warpStart + this.warpLength) / 1000;
+        this.wrapDelayNode.delayTime.value = baseDelayTime;
+        
+        // Connect rate modulation
+        this.warpRateOsc.frequency.value = this.warpRate;
+        this.warpRateGain.gain.value = (this.warpLength / 1000) * 0.1; // 10% modulation depth
+        
+        // Connect rate LFO to delay time if not already connected
+        try {
+            this.warpRateGain.connect(this.wrapDelayNode.delayTime);
+        } catch (e) {
+            // Already connected, ignore
         }
+    } else {
+        // Disable warp effect - dry path only
+        this.warpWetNode.gain.value = 0;
+        this.warpDryNode.gain.value = 1;
+        this.warpFeedbackNode.gain.value = 0;
+        
+        // Disconnect rate modulation
+        try {
+            this.warpRateGain.disconnect(this.wrapDelayNode.delayTime);
+        } catch (e) {
+            // Not connected, ignore
+        }
+        this.warpRateGain.gain.value = 0;
     }
-
+}
     update3DPanner() {
         this.pannerLfoX.frequency.value = this.pannerSpeed;
         this.pannerLfoY.frequency.value = this.pannerSpeed * 0.7;
@@ -1817,15 +1859,6 @@ class GranularSampler {
         const mix = this.freqShifterMix / 100;
         this.freqShifterWetNode.gain.value = mix;
         this.freqShifterDryNode.gain.value = 1 - mix;
-    }
-
-    updateWrapGlow() {
-        const wrapButton = document.getElementById('wrapToggle');
-        if (this.looperEnabled && this.wrapEnabled) {
-            wrapButton.classList.add('wrap-loop-active');
-        } else {
-            wrapButton.classList.remove('wrap-loop-active');
-        }
     }
     updateCombSequencer() {
         if (!this.combSeqLfo) return;
@@ -2185,6 +2218,7 @@ class GranularSampler {
             console.warn('Failed to load presets from localStorage:', error);
         }
     }
+
     setupEventListeners() {
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -2223,16 +2257,9 @@ class GranularSampler {
         document.getElementById('looperToggle').addEventListener('click', () => {
             this.looperEnabled = !this.looperEnabled;
             document.getElementById('looperToggle').classList.toggle('active', this.looperEnabled);
-            this.updateWrapGlow();
-            this.updateWarp(); // NEW: Update warp when loop changes
         });
 
-        document.getElementById('wrapToggle').addEventListener('click', () => {
-            this.wrapEnabled = !this.wrapEnabled;
-            document.getElementById('wrapToggle').classList.toggle('active', this.wrapEnabled);
-            this.updateWrapGlow();
-            this.updateWarp(); // NEW: Update warp when wrap changes
-        });
+        // CHANGED: WARP button moved to WARP module, no longer here
         
         document.getElementById('resetButton').addEventListener('click', () => {
             this.resetAllParameters();
@@ -2291,15 +2318,22 @@ class GranularSampler {
             });
         });
         
-        // Comb sequencer toggle with updated button text
+        // Comb sequencer toggle
         document.getElementById('stringSeqToggle').addEventListener('click', () => {
             this.combSeqEnabled = !this.combSeqEnabled;
-            this.updateCombSeqButton(); // NEW: Use new button update function
+            this.updateCombSeqButton();
             
             if (this.combSeqEnabled) {
                 this.initCombSequencer();
                 this.connectAudioNodes();
             }
+        });
+        
+        // NEW: WARP button (moved to WARP module)
+        document.getElementById('warpToggle').addEventListener('click', () => {
+            this.wrapEnabled = !this.wrapEnabled;
+            document.getElementById('warpToggle').classList.toggle('active', this.wrapEnabled);
+            this.updateWarp();
         });
         
         // NEW: Chromatic Envelope controls
@@ -2313,14 +2347,12 @@ class GranularSampler {
         
         this.setupSliderControls();
     }
-    
     setupSliderControls() {
         const sliders = {
             // Granular
             grainSize: (val) => { 
                 this.grainSize = parseInt(val); 
                 document.getElementById('grainSizeValue').textContent = val + 'ms';
-                // NEW: Update comb seq LFO if active
                 this.updateCombSeqLFO('grainSize', this.combSeqEnabled ? 50 : 0);
             },
             density: (val) => { 
@@ -2733,6 +2765,7 @@ class GranularSampler {
             this.updateLFO();
         });
     }
+
     setupKeyboardControls() {
         const chromaticKeys = {
             'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
@@ -3354,12 +3387,6 @@ document.addEventListener('DOMContentLoaded', () => {
         looperToggle.textContent = '↻ LOOP';
     }
     
-    const wrapToggle = document.getElementById('wrapToggle');
-    if (wrapToggle) {
-        wrapToggle.classList.remove('active');
-        wrapToggle.textContent = '⬜ WRAP';
-    }
-    
     // Set default comb sequencer toggle text
     const combSeqToggle = document.getElementById('stringSeqToggle');
     if (combSeqToggle) {
@@ -3386,7 +3413,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 100);
     
-    // Handle window resize for grain canvas and responsive design
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
@@ -3398,7 +3424,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 250);
     });
     
-    // Enhanced error handling
     window.addEventListener('error', (e) => {
         console.error('Global error caught:', e.error);
         const status = document.getElementById('status');
@@ -3411,17 +3436,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    console.log('🎵 GRAINS Enhanced Granular Sampler Ready!');
+    console.log('🎵 GRAINS Enhanced Granular Sampler v.13 Ready!');
     console.log('New Features:');
-    console.log('- Comb Seq LFO system with parameter modulation');
-    console.log('- Enhanced ring modulator with 3 sources');
-    console.log('- WARP module with 20ms ping-pong loop');
-    console.log('- Enhanced spectral freeze with resonance');
+    console.log('- WARP button moved to WARP module');
+    console.log('- WARP works independently (no LOOP dependency)');
+    console.log('- Button text changed from WRAP to WARP');
+    console.log('- WARP defaults to OFF on startup');
+    console.log('- Enhanced LFO system with parameter modulation');
     console.log('- Multi-tap granular delay with aging and flutter');
     console.log('- Chromatic envelope with 5-stage editing');
     console.log('- 3-band frequency isolator');
-    console.log('- Updated button colors and LFO indicators');
-    console.log('- Enhanced time-stretch range (0.01-4x)');
+    console.log('- Version v.13 displayed on oscilloscope');
 });
 
 // Performance optimization: Cleanup on page unload
@@ -3457,192 +3482,4 @@ window.addEventListener('unhandledrejection', (event) => {
     }
 });
 
-console.log('GRAINS Enhanced Granular Sampler - All systems loaded');
-
-// Mobile-specific audio context resume improvement
-function improveAudioReliability() {
-    if (window.granularSampler && window.granularSampler.audioContext) {
-        const audioContext = window.granularSampler.audioContext;
-        
-        // Multiple resume attempts for mobile reliability
-        const resumeAttempts = [
-            () => audioContext.resume(),
-            () => {
-                // Create and play a silent buffer to "prime" the audio context
-                const buffer = audioContext.createBuffer(1, 1, 22050);
-                const source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioContext.destination);
-                source.start();
-                return audioContext.resume();
-            },
-            () => {
-                // Force user interaction detection
-                document.addEventListener('touchstart', () => audioContext.resume(), { once: true });
-                document.addEventListener('click', () => audioContext.resume(), { once: true });
-                return audioContext.resume();
-            }
-        ];
-        
-        let attemptIndex = 0;
-        const tryResume = () => {
-            if (attemptIndex < resumeAttempts.length && audioContext.state !== 'running') {
-                resumeAttempts[attemptIndex]()
-                    .then(() => {
-                        if (audioContext.state === 'running') {
-                            console.log(`Audio context resumed successfully (attempt ${attemptIndex + 1})`);
-                        } else {
-                            attemptIndex++;
-                            setTimeout(tryResume, 100);
-                        }
-                    })
-                    .catch(() => {
-                        attemptIndex++;
-                        setTimeout(tryResume, 100);
-                    });
-            }
-        };
-        
-        // Start resume attempts when audio is needed
-        if (audioContext.state === 'suspended') {
-            tryResume();
-        }
-    }
-}
-
-// Enhanced mobile-specific event handling
-document.addEventListener('touchstart', improveAudioReliability, { once: true });
-document.addEventListener('click', improveAudioReliability, { once: true });
-
-// Visibility API for better mobile performance
-document.addEventListener('visibilitychange', () => {
-    if (window.granularSampler) {
-        if (document.hidden) {
-            // Pause animations and reduce CPU usage when app is backgrounded
-            document.body.classList.add('paused');
-        } else {
-            // Resume animations when app comes back to foreground
-            document.body.classList.remove('paused');
-            improveAudioReliability();
-        }
-    }
-});
-
-// Additional cookie and storage checks for mobile reliability
-function checkMobileCompatibility() {
-    const checks = {
-        audioContext: !!(window.AudioContext || window.webkitAudioContext),
-        mediaRecorder: !!window.MediaRecorder,
-        localStorage: (() => {
-            try {
-                localStorage.setItem('test', 'test');
-                localStorage.removeItem('test');
-                return true;
-            } catch (e) {
-                return false;
-            }
-        })(),
-        webAudio: (() => {
-            try {
-                const context = new (window.AudioContext || window.webkitAudioContext)();
-                context.close();
-                return true;
-            } catch (e) {
-                return false;
-            }
-        })()
-    };
-    
-    const failedChecks = Object.entries(checks).filter(([key, value]) => !value);
-    
-    if (failedChecks.length > 0) {
-        console.warn('Mobile compatibility issues detected:', failedChecks.map(([key]) => key));
-        
-        const status = document.getElementById('status');
-        if (status && failedChecks.some(([key]) => ['audioContext', 'webAudio'].includes(key))) {
-            status.textContent = 'Audio not supported on this device. Try updating your browser.';
-            status.classList.add('error');
-        }
-    }
-    
-    return failedChecks.length === 0;
-}
-
-// Run mobile compatibility check
-setTimeout(checkMobileCompatibility, 1000);
-
-// Enhanced service worker registration for offline capability (optional)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // Only register if we have a service worker file
-        fetch('/sw.js', { method: 'HEAD' })
-            .then(() => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(registrationError => {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            })
-            .catch(() => {
-                // No service worker file found, that's okay
-            });
-    });
-}
-
-// Final mobile-specific optimizations
-if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-    // Mobile-specific optimizations
-    document.addEventListener('DOMContentLoaded', () => {
-        // Reduce animation complexity on mobile
-        const style = document.createElement('style');
-        style.textContent = `
-            @media (max-width: 768px) {
-                .particle { animation-duration: 12s !important; }
-                .dust-particle { animation-duration: 6s !important; }
-                .grain-particle-enhanced { animation-duration: 1s !important; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // Add mobile-specific touch improvements
-        document.body.style.touchAction = 'manipulation';
-        document.body.style.userSelect = 'none';
-        
-        // Prevent double-tap zoom on buttons
-        const buttons = document.querySelectorAll('button, input, select');
-        buttons.forEach(button => {
-            button.style.touchAction = 'manipulation';
-        });
-    });
-}
-
-// Export for potential module usage
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { GranularSampler };
-}
-
-// Global error recovery system
-window.onerror = function(msg, url, lineNo, columnNo, error) {
-    console.error('Global error:', { msg, url, lineNo, columnNo, error });
-    
-    // Attempt to recover audio context if it failed
-    if (msg.includes('AudioContext') || msg.includes('audio')) {
-        setTimeout(() => {
-            if (window.granularSampler) {
-                window.granularSampler.initAudio().catch(console.error);
-            }
-        }, 1000);
-    }
-    
-    return false; // Don't prevent default error handling
-};
-
-// Final console message
-console.log(`
-GRAINS Enhanced Granular Sampler v2.0
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Ready for granular synthesis! 
-`);
-
+console.log('GRAINS Enhanced Granular Sampler v.13 - All systems loaded');
