@@ -2,365 +2,865 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GRAINS: Industrial Granular Browser Sampler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+    <title>GRAINS: Granular Browser Sampler</title>
     <link rel="icon" href="icon.png" type="image/png">
     <link rel="stylesheet" href="granular_sampler.css">
 </head>
 <body>
     <div class="container">
-        <h1>GRAINS</h1>
-        
+        <!-- Header with transport controls -->
+        <div class="main-header">
+            <img src="grainsIMG.png" alt="Grains Logo" id="grainsIMG" onclick="location.reload()">
+            <div class="subtitle">Granular Synthesis Engine</div>
+            <div id="mobileAudioPrompt" class="mobile-audio-prompt" style="display: none;">
+    <small>Required for mobile browsers</small>
+</div>
+            <!-- Animated particles container -->
+            <div class="logo-particles" id="logoParticles"></div>
+        </div>
+
+        <!-- Drop Zone with falling dust animation -->
         <div class="drop-zone" id="dropZone">
-            <h3>Drop Audio file here or click to browse</h3>
-            <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,.aac" style="display: none;">
+            <div class="drop-content">
+                <div class="drop-icon">◉</div>
+                <div class="drop-text">Drop audio file here or click to browse</div>
+                <!-- Falling dust container -->
+                <div class="falling-dust" id="fallingDust"></div>
+            </div>
+            <input type="file" id="fileInput" accept=".mp3,.wav" style="display: none;">
         </div>
         
-        <div class="status" id="status">
-            Ready to load audio file...
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status" id="status">Ready to load audio file...</div>
         </div>
         
-        <div class="waveform-container" id="waveformContainer" style="display: none;">
-            <canvas id="waveform"></canvas>
-            <div class="playhead" id="playhead"></div>
+        <!-- Oscilloscope -->
+        <div class="oscilloscope-container" id="waveformContainer" style="display: none;">
+            <div class="scope-frame">
+                <div class="scope-bezel">
+                    <div class="scope-screen">
+                        <div class="scope-grid"></div>
+                        <canvas id="waveform"></canvas>
+                        <div class="scan-line" id="playhead"></div>
+                        <canvas id="grainCanvas"></canvas>
+                        <!-- Glass effects -->
+                        <div class="scope-glass-effects" id="scopeGlassEffects"></div>
+                    </div>
+                </div>
+                <div class="scope-controls">
+                    <span class="scope-label">OSC-1M v.13</span>
+                    <div class="scope-indicators">
+                        <div class="indicator active"></div>
+                        <div class="indicator"></div>
+                        <div class="indicator"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       <!-- Transport Bar -->
+<div class="transport-bar-container">
+    <div class="transport-section">
+        <div class="transport-controls">
+            <button class="play-button" id="playButton">▶ PLAY</button>
+            <button class="record-button" id="recordButton">⬤ REC</button>
+            <button class="loop-button" id="looperToggle">↻ LOOP</button>
+            <button class="reset-button" id="resetButton">⟲ RESET</button>
+        </div>
+    </div>
+    
+    <div class="transport-section">
+        <div class="preset-controls">
+            <select id="presetSelect" class="dark-select">
+                <option value="">Select Preset...</option>
+            </select>
+            <button id="savePresetBtn" class="preset-btn">Save</button>
+            <button id="loadPresetBtn" class="preset-btn">Load</button>
+        </div>
+    </div>
+    
+    <div class="transport-section">
+        <div class="volume-controls">
+            <button class="mute-button" id="muteButton">🔊 MUTE</button>
+            <div class="master-volume-control">
+                <label>VOL: <span id="volumeValue">70%</span></label>
+                <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- Signal Path Diagram -->
+        <div class="signal-path-diagram">
+            <div class="signal-flow">
+                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">VOCODER</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">WARP</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">FREQ SHIFTER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">COMB SEQ</span> → <span class="process-module">ENVELOPE</span> → <span class="process-module">ISOLATOR</span> → <span class="process-module">OUTPUT</span>
+            </div>
         </div>
         
+        <!-- Mobile Keyboard - Split into 3 sections -->
         <div class="mobile-keyboard" style="display: none;" id="mobileKeyboard">
-            <div class="keyboard-section">
-                <h4>Playback Control</h4>
-                <div class="keyboard-row">
-                    <button class="key-btn space-key" data-key=" ">SPACE - Play/Stop</button>
+            <div class="keyboard-grid">
+                <!-- Section 1: Playback Control -->
+                <div class="keyboard-section">
+                    <h4>Playback Control</h4>
+                    <div class="keyboard-row">
+                        <button class="key-btn space-key" data-key=" ">SPACE - Play/Stop</button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="keyboard-section">
-                <h4>Sample Position & Navigation</h4>
-                <div class="keyboard-row">
-                    <button class="key-btn scan-key" data-key="1">1</button>
-                    <button class="key-btn scan-key" data-key="2">2</button>
-                    <button class="key-btn scan-key" data-key="3">3</button>
-                    <button class="key-btn scan-key" data-key="4">4</button>
-                    <button class="key-btn scan-key" data-key="5">5</button>
+                
+                <!-- Section 2: Sample Position -->
+                <div class="keyboard-section">
+                    <h4>Sample Position (1-9, 0=Start)</h4>
+                    <div class="keyboard-row">
+                        <button class="key-btn scan-key" data-key="1">1</button>
+                        <button class="key-btn scan-key" data-key="2">2</button>
+                        <button class="key-btn scan-key" data-key="3">3</button>
+                        <button class="key-btn scan-key" data-key="4">4</button>
+                        <button class="key-btn scan-key" data-key="5">5</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn scan-key" data-key="6">6</button>
+                        <button class="key-btn scan-key" data-key="7">7</button>
+                        <button class="key-btn scan-key" data-key="8">8</button>
+                        <button class="key-btn scan-key" data-key="9">9</button>
+                        <button class="key-btn scan-key" data-key="0">0</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn fine-key" data-key="ArrowLeft">◀ MICRO BACK</button>
+                        <button class="key-btn fine-key" data-key="ArrowRight">MICRO FORWARD ▶</button>
+                    </div>
                 </div>
-                <div class="keyboard-row">
-                    <button class="key-btn scan-key" data-key="6">6</button>
-                    <button class="key-btn scan-key" data-key="7">7</button>
-                    <button class="key-btn scan-key" data-key="8">8</button>
-                    <button class="key-btn scan-key" data-key="9">9</button>
-                    <button class="key-btn scan-key" data-key="0">0</button>
-                </div>
-                <div class="keyboard-row">
-                    <button class="key-btn nav-key" data-key="ArrowLeft">← Fine Back</button>
-                    <button class="key-btn nav-key" data-key="ArrowRight">→ Fine Forward</button>
-                </div>
-                <div style="font-size: 10px; opacity: 0.7; margin-top: 8px; text-align: center;">
-                    Number Keys: Scan waveform (0-9) • Arrows: Micro increments 
-                </div>
-            </div>
-            
-            <div class="keyboard-section">
-                <h4>Chromatic Pitch Control</h4>
-                <div class="keyboard-row">
-                    <button class="key-btn" data-key="q" data-pitch="-12">Q</button>
-                    <button class="key-btn" data-key="w" data-pitch="-11">W</button>
-                    <button class="key-btn" data-key="e" data-pitch="-10">E</button>
-                    <button class="key-btn" data-key="r" data-pitch="-9">R</button>
-                    <button class="key-btn" data-key="t" data-pitch="-8">T</button>
-                    <button class="key-btn" data-key="y" data-pitch="-7">Y</button>
-                    <button class="key-btn" data-key="u" data-pitch="-6">U</button>
-                    <button class="key-btn" data-key="i" data-pitch="-5">I</button>
-                    <button class="key-btn" data-key="o" data-pitch="-4">O</button>
-                    <button class="key-btn" data-key="p" data-pitch="-3">P</button>
-                </div>
-                <div class="keyboard-row">
-                    <button class="key-btn" data-key="a" data-pitch="-2">A</button>
-                    <button class="key-btn" data-key="s" data-pitch="-1">S</button>
-                    <button class="key-btn" data-key="d" data-pitch="0">D</button>
-                    <button class="key-btn" data-key="f" data-pitch="1">F</button>
-                    <button class="key-btn" data-key="g" data-pitch="2">G</button>
-                    <button class="key-btn" data-key="h" data-pitch="3">H</button>
-                    <button class="key-btn" data-key="j" data-pitch="4">J</button>
-                    <button class="key-btn" data-key="k" data-pitch="5">K</button>
-                    <button class="key-btn" data-key="l" data-pitch="6">L</button>
-                </div>
-                <div class="keyboard-row">
-                    <button class="key-btn" data-key="z" data-pitch="7">Z</button>
-                    <button class="key-btn" data-key="x" data-pitch="8">X</button>
-                    <button class="key-btn" data-key="c" data-pitch="9">C</button>
-                    <button class="key-btn" data-key="v" data-pitch="10">V</button>
-                    <button class="key-btn" data-key="b" data-pitch="11">B</button>
-                    <button class="key-btn" data-key="n" data-pitch="12">N</button>
-                    <button class="key-btn" data-key="m" data-pitch="13">M</button>
+                
+                <!-- Section 3: Chromatic Pitch Control -->
+                <div class="keyboard-section">
+                    <h4>Chromatic Pitch Control</h4>
+                    <div class="keyboard-row">
+                        <button class="key-btn" data-key="q" data-pitch="-12">Q</button>
+                        <button class="key-btn" data-key="w" data-pitch="-11">W</button>
+                        <button class="key-btn" data-key="e" data-pitch="-10">E</button>
+                        <button class="key-btn" data-key="r" data-pitch="-9">R</button>
+                        <button class="key-btn" data-key="t" data-pitch="-8">T</button>
+                        <button class="key-btn" data-key="y" data-pitch="-7">Y</button>
+                        <button class="key-btn" data-key="u" data-pitch="-6">U</button>
+                        <button class="key-btn" data-key="i" data-pitch="-5">I</button>
+                        <button class="key-btn" data-key="o" data-pitch="-4">O</button>
+                        <button class="key-btn" data-key="p" data-pitch="-3">P</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn" data-key="a" data-pitch="-2">A</button>
+                        <button class="key-btn" data-key="s" data-pitch="-1">S</button>
+                        <button class="key-btn" data-key="d" data-pitch="0">D</button>
+                        <button class="key-btn" data-key="f" data-pitch="1">F</button>
+                        <button class="key-btn" data-key="g" data-pitch="2">G</button>
+                        <button class="key-btn" data-key="h" data-pitch="3">H</button>
+                        <button class="key-btn" data-key="j" data-pitch="4">J</button>
+                        <button class="key-btn" data-key="k" data-pitch="5">K</button>
+                        <button class="key-btn" data-key="l" data-pitch="6">L</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key-btn" data-key="z" data-pitch="7">Z</button>
+                        <button class="key-btn" data-key="x" data-pitch="8">X</button>
+                        <button class="key-btn" data-key="c" data-pitch="9">C</button>
+                        <button class="key-btn" data-key="v" data-pitch="10">V</button>
+                        <button class="key-btn" data-key="b" data-pitch="11">B</button>
+                        <button class="key-btn" data-key="n" data-pitch="12">N</button>
+                        <button class="key-btn" data-key="m" data-pitch="13">M</button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="controls" style="display: none;" id="controls">
-            <div class="control-group">
-                <h3>Granular Synthesis</h3>
-                <div class="slider-container">
-                    <label>Grain Size: <span id="grainSizeValue">50ms</span></label>
-                    <input type="range" id="grainSize" min="10" max="200" value="50">
+        <!-- Controls Grid -->
+        <div class="controls-grid" style="display: none;" id="controls">
+            <!-- Playback Status Panel -->
+            <div class="control-panel playback-panel">
+                <h3>Playback Status</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <polygon points="6,5 6,11 10,8"/>
+                    </svg>
                 </div>
-                <div class="slider-container">
-                    <label>Density: <span id="densityValue">4</span></label>
-                    <input type="range" id="density" min="1" max="16" value="4">
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
                 </div>
-                <div class="slider-container">
-                    <label>Window Scan: <span id="windowScanValue">0%</span></label>
-                    <input type="range" id="windowScan" min="0" max="100" value="0">
+                <div class="status-display compact">
+                    <div class="status-item">
+                        <label>Playing:</label>
+                        <span id="playingStatus">Stopped</span>
+                    </div>
+                    <div class="status-item">
+                        <label>Active Grains:</label>
+                        <span id="activeGrains" class="active-grains">0</span>
+                    </div>
+                    <div class="status-item">
+                        <label>Position:</label>
+                        <span id="currentPos">0.00s</span>
+                    </div>
+                    <div class="status-item">
+                        <label>Loop:</label>
+                        <span id="loopPos">0.00s</span>
+                    </div>
                 </div>
-                <div class="slider-container">
-                    <label>Time Stretch: <span id="timeStretchValue">1.0x</span></label>
-                    <input type="range" id="timeStretch" min="0.25" max="4.0" value="1.0" step="0.1">
-                </div>
-                <div class="slider-container">
-                    <label>Grain Envelope: <span id="envelopeTimeValue">0%</span></label>
-                    <input type="range" id="envelopeTime" min="0" max="100" value="0">
-                    Sharp to smooth (0% Sharp/Percussive - 100% Smooth/Blurry)
-                </div>
-                <button id="looperToggle">Looper: OFF</button>
             </div>
-            
-            <div class="control-group">
-                <h3>Filter</h3>
-                <div class="slider-container">
-                    <label>Filter Frequency: <span id="filterFreqValue">1000Hz</span></label>
-                    <input type="range" id="filterFreq" min="100" max="8000" value="1000">
+
+            <!-- Granular Parameters -->
+            <div class="control-panel">
+                <h3>Granular Engine</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="3" cy="8" r="1"/>
+                        <circle cx="8" cy="8" r="1"/>
+                        <circle cx="13" cy="8" r="1"/>
+                        <path d="M3 8h10M3 8l2-2M3 8l2 2M13 8l-2-2M13 8l-2 2"/>
+                    </svg>
                 </div>
-                <div class="slider-container">
-                    <label>Filter Q: <span id="filterQValue">1</span></label>
-                    <input type="range" id="filterQ" min="0.1" max="10" value="1" step="0.1">
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
                 </div>
-                <div class="slider-container">
-                    <label>LFO Speed: <span id="lfoSpeedValue">0.5Hz</span></label>
-                    <input type="range" id="lfoSpeed" min="0.1" max="10" value="0.5" step="0.1">
-                </div>
-                <div class="slider-container">
-                    <label>LFO Depth: <span id="lfoDepthValue">0%</span></label>
-                    <input type="range" id="lfoDepth" min="0" max="100" value="0">
-                </div>
-                <div class="slider-container">
-                    <label>LFO Shape:</label>
-                    <select id="lfoShape" style="width: 100%; padding: 8px; background: #a8a8a8; color: #1a1a1a; border: 2px solid #707070; border-radius: 3px; font-family: 'Space Mono', monospace;">
-                        <option value="sine">Sine</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="sawtooth">Sawtooth</option>
-                        <option value="square">Square</option>
-                    </select>
-                </div>
-                <canvas class="filter-envelope" id="filterEnvelope"></canvas>
-            </div>
-            
-            <div class="control-group">
-                <h3>Formant Processing</h3>
-                <div class="slider-container">
-                    <label>Formant Mix: <span id="formantMixValue">50%</span></label>
-                    <input type="range" id="formantMix" min="0" max="100" value="50">
-                </div>
-                <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px;">
-                    0% = Dry Signal • 100% = Full Formant Processing
-                </div>
-                <div class="slider-container">
-                    <label>Formant 1: <span id="formant1Value">400Hz</span></label>
-                    <input type="range" id="formant1" min="200" max="800" value="400">
-                </div>
-                <div class="slider-container">
-                    <label>Formant 2: <span id="formant2Value">800Hz</span></label>
-                    <input type="range" id="formant2" min="600" max="1200" value="800">
-                </div>
-                <div class="slider-container">
-                    <label>Formant 3: <span id="formant3Value">1200Hz</span></label>
-                    <input type="range" id="formant3" min="1000" max="1800" value="1200">
-                </div>
-                <div class="slider-container">
-                    <label>Formant 4: <span id="formant4Value">2400Hz</span></label>
-                    <input type="range" id="formant4" min="2000" max="3000" value="2400">
-                </div>
-                <div class="slider-container">
-                    <label>Formant 5: <span id="formant5Value">3200Hz</span></label>
-                    <input type="range" id="formant5" min="2800" max="4000" value="3200">
-                </div>
-                
-                <!-- Formant Sequencer Section -->
-                <div class="sequencer-section">
-                    <h4>Formant Sequencer</h4>
-                    
-                    <!-- Sequencer Controls -->
-                    <div class="sequencer-controls">
-                        <button id="sequencerStart">START SEQ</button>
-                        <div class="slider-container" style="flex: 1; margin-left: 10px;">
-                            <label>Tempo: <span id="sequencerTempoValue">120 BPM</span></label>
-                            <input type="range" id="sequencerTempo" min="60" max="200" value="120">
+                <div class="slider-group">
+                    <div class="slider-item compact">
+                        <label>Grain Size <span id="grainSizeValue">50ms</span></label>
+                        <input type="range" id="grainSize" min="10" max="200" value="50">
+                        <div class="lfo-indicator" id="grainSizeLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Density <span id="densityValue">4</span></label>
+                        <input type="range" id="density" min="1" max="16" value="4">
+                        <div class="lfo-indicator" id="densityLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Window Scan <span id="windowScanValue">0%</span></label>
+                        <input type="range" id="windowScan" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="windowScanLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Grain Shape</label>
+                        <div class="button-group">
+                            <button class="grain-shape-btn active" id="blackmanShape" data-shape="blackman">Blackman</button>
+                            <button class="grain-shape-btn" id="hanningShape" data-shape="hanning">Hanning</button>
+                            <button class="grain-shape-btn" id="downRampShape" data-shape="down-ramp">Down-Ramp</button>
+                            <button class="grain-shape-btn" id="expoDecShape" data-shape="expodec">ExpoDec</button>
+                            <button class="grain-shape-btn" id="sineShape" data-shape="sine">Sine</button>
                         </div>
                     </div>
-                    
-                    <!-- 5 Vertical Step Sliders -->
-                    <div class="sequencer-steps">
-                        <div class="sequencer-step">
-                            <div class="step-indicator" id="sequencerStep0">1</div>
-                            <input type="range" id="sequencerStep0" class="vertical-slider" 
-                                   min="0" max="127" value="64" orient="vertical">
-                            <div class="step-value" id="sequencerStep0Value">64</div>
-                        </div>
-                        <div class="sequencer-step">
-                            <div class="step-indicator" id="sequencerStep1">2</div>
-                            <input type="range" id="sequencerStep1" class="vertical-slider" 
-                                   min="0" max="127" value="64" orient="vertical">
-                            <div class="step-value" id="sequencerStep1Value">64</div>
-                        </div>
-                        <div class="sequencer-step">
-                            <div class="step-indicator" id="sequencerStep2">3</div>
-                            <input type="range" id="sequencerStep2" class="vertical-slider" 
-                                   min="0" max="127" value="64" orient="vertical">
-                            <div class="step-value" id="sequencerStep2Value">64</div>
-                        </div>
-                        <div class="sequencer-step">
-                            <div class="step-indicator" id="sequencerStep3">4</div>
-                            <input type="range" id="sequencerStep3" class="vertical-slider" 
-                                   min="0" max="127" value="64" orient="vertical">
-                            <div class="step-value" id="sequencerStep3Value">64</div>
-                        </div>
-                        <div class="sequencer-step">
-                            <div class="step-indicator" id="sequencerStep4">5</div>
-                            <input type="range" id="sequencerStep4" class="vertical-slider" 
-                                   min="0" max="127" value="64" orient="vertical">
-                            <div class="step-value" id="sequencerStep4Value">64</div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
-                        Controls formant filter amplitude (0-127)
+                    <div class="slider-item compact">
+                        <label>Time Stretch <span id="timeStretchValue">1.0x</span></label>
+                        <input type="range" id="timeStretch" min="0.1" max="4" value="1" step="0.01">
+                        <div class="lfo-indicator" id="timeStretchLfoIndicator"></div>
                     </div>
                 </div>
             </div>
             
-            <div class="control-group">
-                <h3>Wavefolder & Ring Modulation</h3>
-                <div class="slider-container">
-                    <label>Wavefold Amount: <span id="foldAmountValue">0%</span></label>
-                    <input type="range" id="foldAmount" min="0" max="100" value="0">
+            <!-- Filter Section -->
+            <div class="control-panel">
+                <h3>Filter & LFO</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 6l4-4 4 4-4 4-4-4z"/>
+                        <path d="M10 10l4-4"/>
+                        <circle cx="12" cy="12" r="2"/>
+                    </svg>
                 </div>
-                <div style="font-size: 10px; opacity: 0.7; margin-bottom: 15px;">
-                    Harmonic distortion
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
                 </div>
-                
-                <div class="slider-container">
-                    <label>Ring Mod Source:</label>
-                    <select id="ringModSource" style="width: 100%; padding: 8px; background: #a8a8a8; color: #1a1a1a; border: 2px solid #707070; border-radius: 3px; font-family: 'Space Mono', monospace;">
-                        <option value="noise">White Noise</option>
-                        <option value="triangle">Triangle Wave</option>
-                        <option value="microphone">Microphone Input</option>
-                    </select>
-                </div>
-                <div class="slider-container">
-                    <label>Triangle Frequency: <span id="triangleFreqValue">440Hz</span></label>
-                    <input type="range" id="triangleFreq" min="50" max="2000" value="440">
-                </div>
-                <div class="slider-container">
-                    <label>Ring Mod Mix: <span id="ringModMixValue">0%</span></label>
-                    <input type="range" id="ringModMix" min="0" max="100" value="0">
-                </div>
-                <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
-                    Ring modulates processed signal with selected source
-                </div>
-            </div>
-            
-            <div class="control-group">
-                <h3>Multi-Tap Delay</h3>
-                <div class="slider-container">
-                    <label>Delay Time: <span id="delayTimeValue">200ms</span></label>
-                    <input type="range" id="delayTime" min="0.05" max="2.0" value="0.2" step="0.01">
-                </div>
-                <div class="slider-container">
-                    <label>Delay Feedback: <span id="delayFeedbackValue">30%</span></label>
-                    <input type="range" id="delayFeedback" min="0" max="0.95" value="0.3" step="0.01">
-                </div>
-                <div class="slider-container">
-                    <label>Delay Mix: <span id="delayMixValue">0%</span></label>
-                    <input type="range" id="delayMix" min="0" max="1" value="0" step="0.01">
-                </div>
-                <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
-                    4 taps: 0.125s, 0.25s, 0.375s, 0.5s (scaled by delay time)
+                <div class="slider-group">
+                    <div class="slider-item compact">
+                        <label>Frequency <span id="filterFreqValue">2281Hz</span></label>
+                        <input type="range" id="filterFreq" min="100" max="8000" value="2281">
+                        <div class="lfo-indicator" id="filterFreqLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Resonance <span id="filterQValue">0.1</span></label>
+                        <input type="range" id="filterQ" min="0.1" max="10" value="0.1" step="0.1">
+                        <div class="lfo-indicator" id="filterQLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>LFO Speed <span id="lfoSpeedValue">1Hz</span></label>
+                       <input type="range" id="lfoSpeed" min="0.1" max="10" value="1" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>LFO Depth <span id="lfoDepthValue">0%</span></label>
+                        <input type="range" id="lfoDepth" min="0" max="100" value="0">
+                    </div>
+                    <div class="select-item">
+                        <label>LFO Shape</label>
+                        <select id="lfoShape" class="dark-select">
+                            <option value="sine">Sine</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="sawtooth">Sawtooth</option>
+                            <option value="square">Square</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            
-            <div class="control-group">
-                <h3>Volume & Master</h3>
-                <div class="slider-container">
-                    <label>Master Volume: <span id="volumeValue">70%</span></label>
-                    <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+
+            <!-- 8-Band Vocoder -->
+            <div class="control-panel">
+                <h3>8-Band Vocoder</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="1" y="11" width="2" height="4"/>
+                        <rect x="4" y="9" width="2" height="6"/>
+                        <rect x="7" y="6" width="2" height="9"/>
+                        <rect x="10" y="8" width="2" height="7"/>
+                        <rect x="13" y="5" width="2" height="10"/>
+                    </svg>
                 </div>
-                <div style="margin-top: 15px; font-size: 11px; opacity: 0.7;">
-                    Can go up to 200% for extra gain boost
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="vocoder-bands">
+                        <div class="vocoder-band">
+                            <label>200Hz <span id="vocoder1Value">1.0</span></label>
+                            <input type="range" id="vocoder1" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder1LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>400Hz <span id="vocoder2Value">1.0</span></label>
+                            <input type="range" id="vocoder2" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder2LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>800Hz <span id="vocoder3Value">1.0</span></label>
+                            <input type="range" id="vocoder3" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder3LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>1.2kHz <span id="vocoder4Value">1.0</span></label>
+                            <input type="range" id="vocoder4" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder4LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>1.6kHz <span id="vocoder5Value">1.0</span></label>
+                            <input type="range" id="vocoder5" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder5LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>2.4kHz <span id="vocoder6Value">1.0</span></label>
+                            <input type="range" id="vocoder6" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder6LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>3.2kHz <span id="vocoder7Value">1.0</span></label>
+                            <input type="range" id="vocoder7" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder7LfoIndicator"></div>
+                        </div>
+                        <div class="vocoder-band">
+                            <label>4.8kHz <span id="vocoder8Value">1.0</span></label>
+                            <input type="range" id="vocoder8" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
+                            <div class="lfo-indicator" id="vocoder8LfoIndicator"></div>
+                        </div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Vocoder Mix <span id="vocoderMixValue">0%</span></label>
+                        <input type="range" id="vocoderMix" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="vocoderMixLfoIndicator"></div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="control-group">
-                <h3>Granular Reverb</h3>
-                <div class="slider-container">
-                    <label>Reverb Size: <span id="reverbSizeValue">50%</span></label>
-                    <input type="range" id="reverbSize" min="0" max="100" value="50">
+
+            <!-- Wavefolder & Ring Mod -->
+            <div class="control-panel">
+                <h3>Wavefolder & Ring Mod</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 8c2-4 4 4 6 0s4 4 6 0"/>
+                        <circle cx="8" cy="12" r="2"/>
+                    </svg>
                 </div>
-                <div class="slider-container">
-                    <label>Reverb Decay: <span id="reverbDecayValue">30%</span></label>
-                    <input type="range" id="reverbDecay" min="0" max="100" value="30">
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
                 </div>
-                <div class="slider-container">
-                    <label>Pre-Delay: <span id="reverbPreDelayValue">0ms</span></label>
-                    <input type="range" id="reverbPreDelay" min="0" max="100" value="0">
-                </div>
-                <div class="slider-container">
-                    <label>Reverb Mix: <span id="reverbMixValue">0%</span></label>
-                    <input type="range" id="reverbMix" min="0" max="100" value="0">
-                </div>
-                <div style="margin-top: 10px; font-size: 11px; opacity: 0.7;">
-                    8-line granular reverb with cross-coupling
+                <div class="slider-group">
+                    <div class="slider-item compact">
+                        <label>Fold Amount <span id="wavefoldValue">0%</span></label>
+                        <input type="range" id="wavefold" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="wavefoldLfoIndicator"></div>
+                    </div>
+                    <div class="section-label">Cross-Modulation Ring Mod</div>
+                    <div class="button-group">
+                        <button class="mod-source-btn" id="ringModNoise">Noise</button>
+                        <button class="mod-source-btn" id="ringModOsc">Oscillator</button>
+                        <button class="mod-source-btn active" id="ringModGrains">Grains</button>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Ring Mod Mix <span id="ringModMixValue">0%</span></label>
+                        <input type="range" id="ringModMix" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="ringModMixLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Mod Frequency <span id="ringModFreqValue">440Hz</span></label>
+                        <input type="range" id="ringModFreq" min="20" max="2000" value="440">
+                        <div class="lfo-indicator" id="ringModFreqLfoIndicator"></div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="control-group">
-                <h3>Recording</h3>
-                <button id="recordButton">🔴 REC</button>
-                <div style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
-                    Record & Save as Audio File
+
+            <!-- Spectral Freeze & Phaser -->
+            <div class="control-panel">
+                <h3>Spectral Freeze & Phaser</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M8 2v12M2 8h12"/>
+                        <circle cx="8" cy="8" r="3"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="section-label">Enhanced Spectral Freeze</div>
+                    <div class="slider-item compact">
+                        <label>Freeze Amount <span id="spectralFreezeValue">0%</span></label>
+                        <input type="range" id="spectralFreeze" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="spectralFreezeLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Resonance <span id="spectralResonanceValue">0%</span></label>
+                        <input type="range" id="spectralResonance" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="spectralResonanceLfoIndicator"></div>
+                    </div>
+                    <div class="section-label">12-Stage Phaser</div>
+                    <div class="slider-item compact">
+                        <label>Phaser Rate <span id="phaserRateValue">0.5Hz</span></label>
+                        <input type="range" id="phaserRate" min="0.1" max="10" value="0.5" step="0.1">
+                        <div class="lfo-indicator" id="phaserRateLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Phaser Depth <span id="phaserDepthValue">50%</span></label>
+                        <input type="range" id="phaserDepth" min="0" max="100" value="50">
+                        <div class="lfo-indicator" id="phaserDepthLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Feedback <span id="phaserFeedbackValue">0%</span></label>
+                        <input type="range" id="phaserFeedback" min="0" max="90" value="0">
+                        <div class="lfo-indicator" id="phaserFeedbackLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Gain Boost <span id="phaserGainValue">1.0</span></label>
+                        <input type="range" id="phaserGain" min="0.5" max="3" value="1" step="0.01">
+                        <div class="lfo-indicator" id="phaserGainLfoIndicator"></div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="control-group">
-                <h3>Status & Navigation</h3>
-                <div>Playing: <span id="playingStatus">Stopped</span></div>
-                <div>Active Grains: <span id="activeGrains" class="active-grains">0</span></div>
-                <div>Position: <span id="currentPos">0.0 (0.0%)</span></div>
-                <div>Loop Position: <span id="loopPos">0.00s</span></div>
-                <div style="margin-top: 15px; font-size: 11px; opacity: 0.8;">
-                    <strong>Navigation:</strong><br>
-                    • Numbers 0-9: Major positions<br>
-                    • Arrow ← →: Micro-step navigation<br>
+
+            <!-- WARP Module -->
+            <div class="control-panel">
+                <h3>WARP Module</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <path d="M5 8l3-3 3 3-3 3-3-3z"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="warp-display-container">
+                        <div class="warp-display" id="warpDisplay">
+                            <canvas id="warpCanvas" width="120" height="120"></canvas>
+                            <div class="warp-inner-dial" id="warpInnerDial"></div>
+                            <div class="warp-outer-dial" id="warpOuterDial"></div>
+                        </div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Loop Rate <span id="warpRateValue">20Hz</span></label>
+                        <input type="range" id="warpRate" min="1" max="100" value="20">
+                        <div class="lfo-indicator" id="warpRateLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Start Point <span id="warpStartValue">0ms</span></label>
+                        <input type="range" id="warpStart" min="0" max="20" value="0" step="0.1">
+                        <div class="lfo-indicator" id="warpStartLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Loop Length <span id="warpLengthValue">20ms</span></label>
+                        <input type="range" id="warpLength" min="1" max="20" value="20" step="0.1">
+                        <div class="lfo-indicator" id="warpLengthLfoIndicator"></div>
+                    </div>
+                    <div class="button-group">
+                        <button id="warpToggle" class="control-btn">WARP</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Panner & Frequency Shifter -->
+            <div class="control-panel">
+                <h3>3D Panner & Freq Shifter</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <path d="M8 2v4M8 10v4M2 8h4M10 8h4"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="section-label">Binaural 3D Panner</div>
+                    <div class="slider-item compact">
+                        <label>X-Axis Depth <span id="pannerXDepthValue">0%</span></label>
+                        <input type="range" id="pannerXDepth" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="pannerXDepthLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Y-Axis Range <span id="pannerYRangeValue">0%</span></label>
+                        <input type="range" id="pannerYRange" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="pannerYRangeLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Rotation Speed <span id="pannerSpeedValue">0.5Hz</span></label>
+                        <input type="range" id="pannerSpeed" min="0" max="5" value="0.5" step="0.1">
+                        <div class="lfo-indicator" id="pannerSpeedLfoIndicator"></div>
+                    </div>
+                    <div class="section-label">Frequency Shifter</div>
+                    <div class="slider-item compact">
+                        <label>Shift <span id="freqShifterAmountValue">0Hz</span></label>
+                        <input type="range" id="freqShifterAmount" min="-50" max="50" value="0" step="0.1">
+                        <div class="lfo-indicator" id="freqShifterAmountLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Mix <span id="freqShifterMixValue">0%</span></label>
+                        <input type="range" id="freqShifterMix" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="freqShifterMixLfoIndicator"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Multi-Tap Delay -->
+            <div class="control-panel">
+                <h3>Multi-Tap Granular Delay</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 8h12"/>
+                        <circle cx="3" cy="8" r="1"/>
+                        <circle cx="6" cy="8" r="1"/>
+                        <circle cx="9" cy="8" r="1"/>
+                        <circle cx="12" cy="8" r="1"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-item compact">
+                        <label>Length <span id="delayTimeValue">200ms</span></label>
+                        <input type="range" id="delayTime" min="0.01" max="5" value="0.2" step="0.01">
+                        <div class="lfo-indicator" id="delayTimeLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Feedback <span id="delayFeedbackValue">30%</span></label>
+                        <input type="range" id="delayFeedback" min="0" max="0.95" value="0.3" step="0.01">
+                        <div class="lfo-indicator" id="delayFeedbackLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Taps <span id="delayTapsValue">4</span></label>
+                        <input type="range" id="delayTaps" min="1" max="8" value="4">
+                        <div class="lfo-indicator" id="delayTapsLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Spread <span id="delaySpreadValue">50%</span></label>
+                        <input type="range" id="delaySpread" min="0" max="100" value="50">
+                        <div class="lfo-indicator" id="delaySpreadLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Drift <span id="delayDriftValue">0%</span></label>
+                        <input type="range" id="delayDrift" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="delayDriftLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Tape Aging <span id="delayAgingValue">0%</span></label>
+                        <input type="range" id="delayAging" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="delayAgingLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Flutter <span id="delayFlutterValue">0%</span></label>
+                        <input type="range" id="delayFlutter" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="delayFlutterLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Soft Clip <span id="delaySoftClipValue">0%</span></label>
+                        <input type="range" id="delaySoftClip" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="delaySoftClipLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Mix <span id="delayMixValue">0%</span></label>
+                        <input type="range" id="delayMix" min="0" max="1" value="0" step="0.01">
+                        <div class="lfo-indicator" id="delayMixLfoIndicator"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reverb Section -->
+            <div class="control-panel">
+                <h3>12-Bit Reverb</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="10" height="10" rx="2"/>
+                        <path d="M8 6v4M6 8h4"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-item compact">
+                        <label>Size <span id="reverbSizeValue">50%</span></label>
+                        <input type="range" id="reverbSize" min="0" max="100" value="50">
+                        <div class="lfo-indicator" id="reverbSizeLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Decay <span id="reverbDecayValue">50%</span></label>
+                        <input type="range" id="reverbDecay" min="0" max="100" value="50">
+                        <div class="lfo-indicator" id="reverbDecayLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Pre-Delay <span id="reverbPreDelayValue">10ms</span></label>
+                        <input type="range" id="reverbPreDelay" min="0" max="100" value="10">
+                        <div class="lfo-indicator" id="reverbPreDelayLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Wet Gain <span id="reverbWetGainValue">1.0</span></label>
+                        <input type="range" id="reverbWetGain" min="0.5" max="2" value="1" step="0.01">
+                        <div class="lfo-indicator" id="reverbWetGainLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Mix <span id="reverbMixValue">0%</span></label>
+                        <input type="range" id="reverbMix" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="reverbMixLfoIndicator"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comb Sequencer -->
+            <div class="control-panel">
+                <h3>Comb Sequencer</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 12l2-8 2 8 2-8 2 8 2-8 2 8"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="string-seq-toggle">
+                        <button class="seq-toggle-btn" id="stringSeqToggle">OFF</button>
+                    </div>
+                    <div class="string-seq-wave">
+                        <canvas id="stringSeqWave" width="240" height="40"></canvas>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Speed <span id="stringSeqSpeedValue">4Hz</span></label>
+                        <input type="range" id="stringSeqSpeed" min="0.5" max="20" value="4" step="0.1">
+                        <div class="lfo-indicator" id="stringSeqSpeedLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Depth <span id="stringSeqDepthValue">0%</span></label>
+                        <input type="range" id="stringSeqDepth" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="stringSeqDepthLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Wet Mix <span id="stringSeqWetMixValue">0%</span></label>
+                        <input type="range" id="stringSeqWetMix" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="stringSeqWetMixLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Squeeze <span id="stringSeqSqueezeValue">0%</span></label>
+                        <input type="range" id="stringSeqSqueeze" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="stringSeqSqueezeLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Soft Clip <span id="combSeqSoftClipValue">0%</span></label>
+                        <input type="range" id="combSeqSoftClip" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="combSeqSoftClipLfoIndicator"></div>
+                    </div>
+                    <div class="section-label">5-Step Frequency Values (Hz)</div>
+                    <div class="seq-steps">
+                        <div class="seq-step">
+                            <label>1 <span id="stringSeqStep1Value">440</span></label>
+                            <input type="range" id="stringSeqStep1" min="100" max="2000" value="440" class="seq-step-slider">
+                            <div class="lfo-indicator" id="stringSeqStep1LfoIndicator"></div>
+                        </div>
+                        <div class="seq-step">
+                            <label>2 <span id="stringSeqStep2Value">660</span></label>
+                            <input type="range" id="stringSeqStep2" min="100" max="2000" value="660" class="seq-step-slider">
+                            <div class="lfo-indicator" id="stringSeqStep2LfoIndicator"></div>
+                        </div>
+                        <div class="seq-step">
+                            <label>3 <span id="stringSeqStep3Value">880</span></label>
+                            <input type="range" id="stringSeqStep3" min="100" max="2000" value="880" class="seq-step-slider">
+                            <div class="lfo-indicator" id="stringSeqStep3LfoIndicator"></div>
+                        </div>
+                        <div class="seq-step">
+                            <label>4 <span id="stringSeqStep4Value">1100</span></label>
+                            <input type="range" id="stringSeqStep4" min="100" max="2000" value="1100" class="seq-step-slider">
+                            <div class="lfo-indicator" id="stringSeqStep4LfoIndicator"></div>
+                        </div>
+                        <div class="seq-step">
+                            <label>5 <span id="stringSeqStep5Value">1320</span></label>
+                            <input type="range" id="stringSeqStep5" min="100" max="2000" value="1320" class="seq-step-slider">
+                            <div class="lfo-indicator" id="stringSeqStep5LfoIndicator"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chromatic Envelope -->
+            <div class="control-panel">
+                <h3>Chromatic Envelope</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M1 15l3-6 3 2 3-8 3 4 2-2"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="envelope-canvas-container">
+                        <canvas id="envelopeCanvas" width="280" height="120"></canvas>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Loop Rate <span id="envelopeRateValue">1Hz</span></label>
+                        <input type="range" id="envelopeRate" min="0.1" max="20" value="1" step="0.1">
+                        <div class="lfo-indicator" id="envelopeRateLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Loop Depth <span id="envelopeDepthValue">0%</span></label>
+                        <input type="range" id="envelopeDepth" min="0" max="100" value="0">
+                        <div class="lfo-indicator" id="envelopeDepthLfoIndicator"></div>
+                    </div>
+                    <div class="button-group">
+                        <button class="envelope-btn active" id="envelopeLoopToggle">Loop OFF</button>
+                        <button class="envelope-btn" id="envelopeResetBtn">Reset Shape</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3-Band Frequency Isolator -->
+            <div class="control-panel">
+                <h3>3-Band Frequency Isolator</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="10" width="3" height="4"/>
+                        <rect x="6.5" y="6" width="3" height="8"/>
+                        <rect x="11" y="2" width="3" height="12"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="isolator-bands">
+                        <div class="isolator-band">
+                            <label>LO <span id="isolatorLoValue">100%</span></label>
+                            <input type="range" id="isolatorLo" min="0" max="1" value="1" step="0.01" class="isolator-slider">
+                            <div class="lfo-indicator" id="isolatorLoLfoIndicator"></div>
+                        </div>
+                        <div class="isolator-band">
+                            <label>MID <span id="isolatorMidValue">100%</span></label>
+                            <input type="range" id="isolatorMid" min="0" max="1" value="1" step="0.01" class="isolator-slider">
+                            <div class="lfo-indicator" id="isolatorMidLfoIndicator"></div>
+                        </div>
+                        <div class="isolator-band">
+                            <label>HI <span id="isolatorHiValue">100%</span></label>
+                            <input type="range" id="isolatorHi" min="0" max="1" value="1" step="0.01" class="isolator-slider">
+                            <div class="lfo-indicator" id="isolatorHiLfoIndicator"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         
+        <!-- Instructions -->
         <div class="instructions">
-            <h3>Controls:</h3>
-            <div class="key-map">
-                <div>
-                    <strong>Playback:</strong><br>
-                    • SPACE - Start/Stop<br>
-                    • 0-9 - Major scan positions<br>
-                    • ← → - Fine micro-navigation<br>
+            <h3>Controls</h3>
+            <div class="instruction-grid">
+                <div class="instruction-column">
+                    <h4>Playback</h4>
+                    <ul>
+                        <li><strong>SPACE</strong> - Start/Stop</li>
+                        <li><strong>1-9</strong> - Scan through sample</li>
+                        <li><strong>0</strong> - Return to start</li>
+                        <li><strong>←/→</strong> - Micro navigation</li>
+                    </ul>
                 </div>
-                <div>
-                    <strong>Chromatic Pitch:</strong><br>
-                    • Q W E R T Y U I O P<br>
-                    • A S D F G H J K L<br>
-                    • Z X C V B N M<br>
-                    <br>
+                <div class="instruction-column">
+                    <h4>Pitch (Chromatic)</h4>
+                    <ul>
+                        <li><strong>Q-P</strong> - Upper octave</li>
+                        <li><strong>A-L</strong> - Middle octave</li>
+                        <li><strong>Z-M</strong> - Lower octave</li>
+                    </ul>
+                </div>
+                <div class="instruction-column">
+                    <h4>Functions</h4>
+                    <ul>
+                        <li><strong>RESET</strong> - Reset all parameters</li>
+                        <li><strong>MUTE</strong> - Toggle audio mute</li>
+                        <li><strong>RECORD</strong> - Record & save your realtime audio</li>
+                        <li><strong>LOOP</strong> - Scrolls playhead through entire waveform</li>
+                        <li><strong>WARP</strong> - Locks in a high frequency micro-loop</li>
+                    </ul>
                 </div>
             </div>
+            <div id="performanceIndicator" class="performance-indicator">
+    <span id="fpsDisplay">FPS: --</span>
+    <span id="gradeDisplay">Grade: --</span>
+</div>
         </div>
     </div>
 
     <script src="granular_sampler.js"></script>
+    
 </body>
 </html>
