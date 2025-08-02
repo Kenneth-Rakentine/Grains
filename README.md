@@ -90,7 +90,7 @@ Fold Amount (0-100%) - Harmonic distortion intensity<br>
 Ring Mod Source - Oscillator, Noise, or Grains modulation<br>
 Ring Mod Frequency (20-2000Hz) - Oscillator frequency for ring modulation<br>
 Ring Mod Mix (0-100%) - Effect blend amount<br>
-Envelope Speed (0.1-20Hz) - Ring modulator envelope rate<br>
+
 
 **SPECTRAL FREEZE & PHASER**
 <br>
@@ -104,10 +104,9 @@ Gain Boost (0.5-3x) - Output amplification with harmonic saturation<br>
 **CHROMATIC ENVELOPE**
 <br>
 5-Stage Envelope - Attack, Decay, Sustain, Release, and Hold parameters<br>
-Envelope Amount (0-100%) - Overall envelope modulation intensity<br>
-Target Parameter - Select which parameter the envelope modulates<br>
-Chromatic Scaling - Note-dependent envelope timing adjustments<br>
-Loop Mode - Enable/disable envelope looping<br>
+Loop Depth (0-100%) - Overall envelope modulation intensity<br>
+Loop Rate - Frequency of looping envelope<br>
+Loop OFF/ON - Enable/disable envelope looping<br>
 
 **WARP MODULE**
 <br>
@@ -126,9 +125,11 @@ Freq Shift Mix (0-100%) - Effect blend amount<br>
 
 **MULTITAP DELAY**
 <br>
-Time (10ms-5s) - Primary echo delay duration<br>
+Length (10ms-5s) - Primary echo delay duration<br>
 Feedback (0-95%) - Echo regeneration amount<br>
-Tap Count (1-8) - Number of delay taps for complex rhythmic patterns<br>
+Taps (1-8) - Number of delay taps for complex rhythmic patterns<br>
+Spread (0-100%) - Distance between individual taps<br>
+Drift (0%-100%) - Slews rhythmic interval between taps<br>
 Aging (0-100%) - High-frequency damping on delay repeats<br>
 Flutter (0-100%) - Vintage tape-style pitch modulation<br>
 Soft Clip (0-100%) - Delay path saturation<br>
@@ -157,8 +158,7 @@ Soft Clip (0-100%) - Harmonic saturation for comb filters<br>
 Low Band (20-300Hz) - Bass frequency isolation and gain control<br>
 Mid Band (300-3kHz) - Midrange frequency isolation and gain control<br>
 High Band (3kHz-20kHz) - Treble frequency isolation and gain control<br>
-Kill Switches - Individual band mute/solo functionality<br>
-Crossover Slopes - Adjustable filter steepness between frequency bands<br>
+
 
 **MASTER CONTROLS**
 <br>
