@@ -1,9 +1,11 @@
 # GRAINS 
-**Granular Browser Sampler** 
 
+
+**Granular Browser Sampler** 
 <br>
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 - 
+   
 
 **Video Demo**<br>
 [Youtube](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
@@ -20,8 +22,6 @@ OR
 
 https://kenneth-rakentine.github.io/Grains/
 
-
-<br>
 
 <br>
 ## Instructions:
