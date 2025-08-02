@@ -948,4 +948,4 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-console.log('🚀 Mobile Audio & Performance Optimization System Ready!');
+console.log('Mobile Audio & Performance Optimization System Ready!');

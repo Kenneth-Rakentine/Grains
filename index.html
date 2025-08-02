@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
     <title>GRAINS: Granular Browser Sampler</title>
     <link rel="icon" href="icon.png" type="image/png">
     <link rel="stylesheet" href="granular_sampler.css">
@@ -13,6 +16,9 @@
         <div class="main-header">
             <img src="grainsIMG.png" alt="Grains Logo" id="grainsIMG" onclick="location.reload()">
             <div class="subtitle">Granular Synthesis Engine</div>
+            <div id="mobileAudioPrompt" class="mobile-audio-prompt" style="display: none;">
+    <small>Required for mobile browsers</small>
+</div>
             <!-- Animated particles container -->
             <div class="logo-particles" id="logoParticles"></div>
         </div>
@@ -847,9 +853,14 @@
                     </ul>
                 </div>
             </div>
+            <div id="performanceIndicator" class="performance-indicator">
+    <span id="fpsDisplay">FPS: --</span>
+    <span id="gradeDisplay">Grade: --</span>
+</div>
         </div>
     </div>
 
     <script src="granular_sampler.js"></script>
+    
 </body>
 </html>
