@@ -1,8 +1,21 @@
 # GRAINS 
 
 
+
+
 **Granular Browser Sampler** 
 <br>
+![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
+- 
+   
+
+**Video Demo**<br>
+[Youtube](https://youtu.be/ccXyPcyo36k?si=NmFD9c_f9ruhk9Om)
+-
+
+**Tools:**<br>
+<span style="color:#008080;">Browser-based audio manipulation tool using WEB AUDIO API</span>
+
 ![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 - 
    
@@ -20,8 +33,15 @@ http://browsergrains.surge.sh/
 
 OR
 
+
+http://browsergrains.surge.sh/
+
+OR
+
 https://kenneth-rakentine.github.io/Grains/
 
+
+<br>
 
 <br>
 ## Instructions:
