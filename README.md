@@ -26,7 +26,7 @@ https://kenneth-rakentine.github.io/Grains/
 <br>
 
 ## Instructions:
--
+
 
 **CONTROLS**
 (use keyboard or on-screen buttons)
@@ -59,8 +59,9 @@ Use **WARP** button to enable/disable micro-loop warping effect at current posit
 
 
 
-### **PARAMETERS**
--
+## **PARAMETERS**
+
+<br>
 
 **GRANULAR ENGINE** 
 <br>
