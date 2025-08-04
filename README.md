@@ -1,11 +1,9 @@
 # GRAINS 
 
 
-
+**Granular Browser Sampler** 
 <br>
-
-![image](Image/consoleIMG.png)<br>
-*Granular Browser Sampler* <br>
+![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
 - 
    
 
@@ -73,21 +71,13 @@ Window Scan (0-100%) - Random deviation range from start position<br>
 Grain Shape - 5 envelope types: Blackman, Hanning, Down-Ramp, ExpoDec, Sine<br>
 Time Stretch (0.1-4x) - Playback speed without pitch change<br>
 
-**BANDPASS FILTER & LFO**
+**FILTER & LFO**
 <br>
 Frequency (100-8000Hz) - Resonant bandpass filter center frequency<br>
 Resonance (0.1-10) - Filter resonance/bandwidth<br>
 LFO Speed (0.1-10Hz) - Modulation rate for filter frequency<br>
 LFO Depth (0-100%) - Modulation intensity<br>
 LFO Shape - Sine, Triangle, Sawtooth, Square waveforms<br>
-
-**NOTCH FILTER**
-<br>
-Filter Freq (100-8000Hz) - Notch filter center frequency<br>
-Bandwidth (0.1-30) - Notch filter Q/bandwidth<br>
-Wet Mix (0-100%) - Notch filter effect blend<br>
-LFO Rate (0.01-20Hz) - Filter frequency modulation rate<br>
-LFO Depth (0-100%) - Filter frequency modulation depth<br>
 
 **8-BAND VOCODER**
 <br>
@@ -133,13 +123,16 @@ Rotation Speed (0-5Hz) - 3D movement rate<br>
 Frequency Shift (-50 to +50Hz) - Pitch shifting without time change<br>
 Freq Shift Mix (0-100%) - Effect blend amount<br>
 
-**PT2399 ANALOG DELAY**
+**MULTITAP DELAY**
 <br>
-Time (20-600ms) - Delay time with analog character<br>
-Feedback (0-95%) - Delay regeneration amount<br>
-Wow & Flutter (0-100%) - Vintage tape-style pitch modulation<br>
-Lo-Fi Amount (0-100%) - High-frequency filtering for analog warmth<br>
-Soft Clipping (0-100%) - Analog saturation on delay path<br>
+Length (10ms-5s) - Primary echo delay duration<br>
+Feedback (0-95%) - Echo regeneration amount<br>
+Taps (1-8) - Number of delay taps for complex rhythmic patterns<br>
+Spread (0-100%) - Distance between individual taps<br>
+Drift (0%-100%) - Slews rhythmic interval between taps<br>
+Aging (0-100%) - High-frequency damping on delay repeats<br>
+Flutter (0-100%) - Vintage tape-style pitch modulation<br>
+Soft Clip (0-100%) - Delay path saturation<br>
 Mix (0-100%) - Wet/dry balance<br>
 
 **12-BIT REVERB**
@@ -166,22 +159,6 @@ Low Band (20-300Hz) - Bass frequency isolation and gain control<br>
 Mid Band (300-3kHz) - Midrange frequency isolation and gain control<br>
 High Band (3kHz-20kHz) - Treble frequency isolation and gain control<br>
 
-**LIQUEFIER FILTER**
-<br>
-Filter Freq (100-8000Hz) - Lowpass filter center frequency<br>
-Resonance (0-100%) - Filter resonance/Q factor<br>
-LFO Depth (0-100%) - Random frequency modulation intensity<br>
-LFO Rate (0.1-20Hz) - Random modulation speed<br>
-Wet Mix (0-100%) - Filter effect blend<br>
-Smooth/Stepped - Choose between smooth or stepped random modulation<br>
-
-**GRAIN SPEED**
-<br>
-Click inside circle and drag to increase grain generation speed<br>
-
-**LOOP SPEED**
-<br>
-Click inside circle and drag to increase loop generation speed *(ONLY available when "LOOP" Button at top of screen is activated) <br>
 
 **MASTER CONTROLS**
 <br>
@@ -191,9 +168,10 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 
 
+![image](Image/consoleIMG.png)
 <br>
 ## SIGNAL FLOW
-<span style="color:#008080;">GRAINS → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT</span>
+<span style="color:#008080;">GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → MULTITAP DELAY → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → OUTPUT</span>
 
 
 
