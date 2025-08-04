@@ -1,9 +1,11 @@
 # GRAINS 
 
 
-**Granular Browser Sampler** 
+
 <br>
-![LOGO](https://kenneth-rakentine.github.io/Grains/grainsIMG.png)
+
+![image](Image/consoleIMG.png)<br>
+*Granular Browser Sampler* <br>
 - 
    
 
@@ -24,7 +26,10 @@ https://kenneth-rakentine.github.io/Grains/
 
 
 <br>
+
 ## Instructions:
+
+
 **CONTROLS**
 (use keyboard or on-screen buttons)
 
@@ -56,7 +61,9 @@ Use **WARP** button to enable/disable micro-loop warping effect at current posit
 
 
 
-### **PARAMETERS**
+## **PARAMETERS**
+
+<br>
 
 **GRANULAR ENGINE** 
 <br>
@@ -66,13 +73,21 @@ Window Scan (0-100%) - Random deviation range from start position<br>
 Grain Shape - 5 envelope types: Blackman, Hanning, Down-Ramp, ExpoDec, Sine<br>
 Time Stretch (0.1-4x) - Playback speed without pitch change<br>
 
-**FILTER & LFO**
+**BANDPASS FILTER & LFO**
 <br>
 Frequency (100-8000Hz) - Resonant bandpass filter center frequency<br>
 Resonance (0.1-10) - Filter resonance/bandwidth<br>
 LFO Speed (0.1-10Hz) - Modulation rate for filter frequency<br>
 LFO Depth (0-100%) - Modulation intensity<br>
 LFO Shape - Sine, Triangle, Sawtooth, Square waveforms<br>
+
+**NOTCH FILTER**
+<br>
+Filter Freq (100-8000Hz) - Notch filter center frequency<br>
+Bandwidth (0.1-30) - Notch filter Q/bandwidth<br>
+Wet Mix (0-100%) - Notch filter effect blend<br>
+LFO Rate (0.01-20Hz) - Filter frequency modulation rate<br>
+LFO Depth (0-100%) - Filter frequency modulation depth<br>
 
 **8-BAND VOCODER**
 <br>
@@ -82,17 +97,26 @@ Vocoder Mix (0-100%) - Blend between dry and vocoded signal<br>
 **WAVEFOLDER & RING MODULATOR**
 <br>
 Fold Amount (0-100%) - Harmonic distortion intensity<br>
-Ring Mod Source - Noise or Envelope modulation<br>
+Ring Mod Source - Oscillator, Noise, or Grains modulation<br>
+Ring Mod Frequency (20-2000Hz) - Oscillator frequency for ring modulation<br>
 Ring Mod Mix (0-100%) - Effect blend amount<br>
-Envelope Speed (0.1-20Hz) - Ring modulator envelope rate<br>
+
 
 **SPECTRAL FREEZE & PHASER**
 <br>
 Freeze Amount (0-100%) - Spectral freezing intensity using delay feedback<br>
+Spectral Resonance (0-100%) - Resonant filter coloration within freeze effect<br>
 Phaser Rate (0.1-10Hz) - 12-stage phaser LFO speed<br>
 Phaser Depth (0-100%) - Frequency sweep range<br>
 Feedback (0-90%) - Phaser resonance amount<br>
 Gain Boost (0.5-3x) - Output amplification with harmonic saturation<br>
+
+**CHROMATIC ENVELOPE**
+<br>
+5-Stage Envelope - Attack, Decay, Sustain, Release, and Hold parameters<br>
+Loop Depth (0-100%) - Overall envelope modulation intensity<br>
+Loop Rate - Frequency of looping envelope<br>
+Loop OFF/ON - Enable/disable envelope looping<br>
 
 **WARP MODULE**
 <br>
@@ -109,11 +133,13 @@ Rotation Speed (0-5Hz) - 3D movement rate<br>
 Frequency Shift (-50 to +50Hz) - Pitch shifting without time change<br>
 Freq Shift Mix (0-100%) - Effect blend amount<br>
 
-**DELAY**
+**PT2399 ANALOG DELAY**
 <br>
-Time (10ms-5s) - Echo delay duration<br>
-Feedback (0-95%) - Echo regeneration amount<br>
-Soft Clip (0-100%) - Delay path saturation<br>
+Time (20-600ms) - Delay time with analog character<br>
+Feedback (0-95%) - Delay regeneration amount<br>
+Wow & Flutter (0-100%) - Vintage tape-style pitch modulation<br>
+Lo-Fi Amount (0-100%) - High-frequency filtering for analog warmth<br>
+Soft Clipping (0-100%) - Analog saturation on delay path<br>
 Mix (0-100%) - Wet/dry balance<br>
 
 **12-BIT REVERB**
@@ -134,6 +160,29 @@ Squeeze (0-100%) - Waveform compression effect<br>
 Soft Clip (0-100%) - Harmonic saturation for comb filters<br>
 5-Step Sequence - Individual frequency control (100-2000Hz per step)<br>
 
+**3-BAND ISOLATOR**
+<br>
+Low Band (20-300Hz) - Bass frequency isolation and gain control<br>
+Mid Band (300-3kHz) - Midrange frequency isolation and gain control<br>
+High Band (3kHz-20kHz) - Treble frequency isolation and gain control<br>
+
+**LIQUEFIER FILTER**
+<br>
+Filter Freq (100-8000Hz) - Lowpass filter center frequency<br>
+Resonance (0-100%) - Filter resonance/Q factor<br>
+LFO Depth (0-100%) - Random frequency modulation intensity<br>
+LFO Rate (0.1-20Hz) - Random modulation speed<br>
+Wet Mix (0-100%) - Filter effect blend<br>
+Smooth/Stepped - Choose between smooth or stepped random modulation<br>
+
+**GRAIN SPEED**
+<br>
+Click inside circle and drag to increase grain generation speed<br>
+
+**LOOP SPEED**
+<br>
+Click inside circle and drag to increase loop generation speed *(ONLY available when "LOOP" Button at top of screen is activated) <br>
+
 **MASTER CONTROLS**
 <br>
 Master Volume (0-200%) - Can boost gain x2 past 100% with dynamic compression<br>
@@ -142,10 +191,9 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 
 
-![image](Image/consoleIMG.png)
 <br>
 ## SIGNAL FLOW
-<span style="color:#008080;">GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → DELAY → REVERB → COMB SEQ → ENVELOPE → ISOLATOR → OUTPUT</span>
+<span style="color:#008080;">GRAINS → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT</span>
 
 
 
