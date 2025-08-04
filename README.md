@@ -192,7 +192,8 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 
 
 <br>
-## SIGNAL FLOW
+
+## SIGNAL FLOW  
 <span style="color:#008080;">GRAINS → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT</span>
 
 
