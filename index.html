@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>GRAINS: Granular Browser Sampler</title>
     <link rel="icon" href="icon.png" type="image/png">
     <link rel="stylesheet" href="granular_sampler.css">
@@ -14,11 +14,18 @@
     <div class="container">
         <!-- Header with transport controls -->
         <div class="main-header">
-            <img src="grainsIMG.png" alt="Grains Logo" id="grainsIMG" onclick="location.reload()">
-            <div class="subtitle">Granular Synthesis Engine</div>
+            <div class="grains-text-logo" id="grainsTextLogo" onclick="location.reload();">
+                <div class="grains-line">░░░░░██████╗░██████╗░░█████╗░██╗███╗░░██╗░██████╗░░░</div>
+                <div class="grains-line">░░░░██╔════╝░██╔══██╗██╔══██╗██║████╗░██║██╔════╝░░░</div>
+                <div class="grains-line">░░░░██║░░██╗░██████╔╝███████║██║██╔██╗██║╚█████╗░░░░</div>
+                <div class="grains-line">░░░░██║░░╚██╗██╔══██╗██╔══██║██║██║╚████║░╚═══██╗░░░</div>
+                <div class="grains-line">░░░░╚██████╔╝██║░░██║██║░░██║██║██║░╚███║██████╔╝░░░</div>
+                <div class="grains-line">░░░░░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝╚═╝░░╚══╝╚═════╝░░░░</div>
+            </div>
+            <div class="subtitle">Granular Synthesis Engine v.17</div>
             <div id="mobileAudioPrompt" class="mobile-audio-prompt" style="display: none;">
-    <small>Required for mobile browsers</small>
-</div>
+                <small>Required for mobile browsers</small>
+            </div>
             <!-- Animated particles container -->
             <div class="logo-particles" id="logoParticles"></div>
         </div>
@@ -53,7 +60,7 @@
                     </div>
                 </div>
                 <div class="scope-controls">
-                    <span class="scope-label">OSC-1M v.13</span>
+                    <span class="scope-label">OSC-1M v.17</span>
                     <div class="scope-indicators">
                         <div class="indicator active"></div>
                         <div class="indicator"></div>
@@ -62,46 +69,44 @@
                 </div>
             </div>
         </div>
-
-       <!-- Transport Bar -->
-<div class="transport-bar-container">
-    <div class="transport-section">
-        <div class="transport-controls">
-            <button class="play-button" id="playButton">▶ PLAY</button>
-            <button class="record-button" id="recordButton">⬤ REC</button>
-            <button class="loop-button" id="looperToggle">↻ LOOP</button>
-            <button class="reset-button" id="resetButton">⟲ RESET</button>
-        </div>
-    </div>
-    
-    <div class="transport-section">
-        <div class="preset-controls">
-            <select id="presetSelect" class="dark-select">
-                <option value="">Select Preset...</option>
-            </select>
-            <button id="savePresetBtn" class="preset-btn">Save</button>
-            <button id="loadPresetBtn" class="preset-btn">Load</button>
-        </div>
-    </div>
-    
-    <div class="transport-section">
-        <div class="volume-controls">
-            <button class="mute-button" id="muteButton">🔊 MUTE</button>
-            <div class="master-volume-control">
-                <label>VOL: <span id="volumeValue">70%</span></label>
-                <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+        <!-- Transport Bar -->
+        <div class="transport-bar-container">
+            <div class="transport-section">
+                <div class="transport-controls">
+                    <button class="play-button" id="playButton">▶ PLAY</button>
+                    <button class="record-button" id="recordButton">⬤ REC</button>
+                    <button class="loop-button" id="looperToggle">↻ LOOP</button>
+                    <button class="reset-button" id="resetButton">⟲ RESET</button>
+                </div>
+            </div>
+            
+            <div class="transport-section">
+                <div class="preset-controls">
+                    <select id="presetSelect" class="dark-select">
+                        <option value="">Select Preset...</option>
+                    </select>
+                    <button id="savePresetBtn" class="preset-btn">Save</button>
+                    <button id="loadPresetBtn" class="preset-btn">Load</button>
+                </div>
+            </div>
+            
+            <div class="transport-section">
+                <div class="volume-controls">
+                    <button class="mute-button" id="muteButton">🔊 MUTE</button>
+                    <div class="master-volume-control">
+                        <label>VOL: <span id="volumeValue">70%</span></label>
+                        <input type="range" id="volume" min="0" max="2" value="0.7" step="0.01">
+                    </div>
+                </div>
             </div>
         </div>
+
+      <!-- Signal Path Diagram - UPDATED -->
+<div class="signal-path-diagram">
+    <div class="signal-flow">
+        <span class="process-module">GRAINS</span> → <span class="process-module">BANDPASS FILTER</span> → <span class="process-module">NOTCH FILTER</span> → <span class="process-module">VOCODER</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">WARP</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">FREQ SHIFTER</span> → <span class="process-module">PT2399</span> → <span class="process-module">REVERB</span> → <span class="process-module">COMB SEQ</span> → <span class="process-module">ENVELOPE</span> → <span class="process-module">ISOLATOR</span> → <span class="process-module">LIQUEFIER</span> → <span class="process-module">OUTPUT</span>
     </div>
 </div>
-
-        <!-- Signal Path Diagram -->
-        <div class="signal-path-diagram">
-            <div class="signal-flow">
-                <span class="process-module">GRAINS</span> → <span class="process-module">FILTER</span> → <span class="process-module">VOCODER</span> → <span class="process-module">WAVEFOLDER</span> → <span class="process-module">RING MOD</span> → <span class="process-module">SPECTRAL FREEZE</span> → <span class="process-module">PHASER</span> → <span class="process-module">WARP</span> → <span class="process-module">3D PANNER</span> → <span class="process-module">FREQ SHIFTER</span> → <span class="process-module">DELAY</span> → <span class="process-module">REVERB</span> → <span class="process-module">COMB SEQ</span> → <span class="process-module">ENVELOPE</span> → <span class="process-module">ISOLATOR</span> → <span class="process-module">OUTPUT</span>
-            </div>
-        </div>
-        
         <!-- Mobile Keyboard - Split into 3 sections -->
         <div class="mobile-keyboard" style="display: none;" id="mobileKeyboard">
             <div class="keyboard-grid">
@@ -262,10 +267,9 @@
                     </div>
                 </div>
             </div>
-            
             <!-- Filter Section -->
             <div class="control-panel">
-                <h3>Filter & LFO</h3>
+                <h3>Bandpass Filter</h3>
                 <div class="panel-icon">
                     <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
                         <path d="M2 6l4-4 4 4-4 4-4-4z"/>
@@ -310,6 +314,46 @@
                 </div>
             </div>
 
+<!-- Notch Filter -->
+<div class="control-panel">
+    <h3>Notch Filter</h3>
+    <div class="panel-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M2 8h12"/>
+            <circle cx="8" cy="8" r="3"/>
+            <path d="M8 5v6"/>
+        </svg>
+    </div>
+    <div class="panel-screws">
+        <div class="screw top-left"></div>
+        <div class="screw top-right"></div>
+        <div class="screw bottom-left"></div>
+        <div class="screw bottom-right"></div>
+    </div>
+    <div class="slider-group">
+        <div class="slider-item compact">
+            <label>Filter Freq <span id="notchFreqValue">1000Hz</span></label>
+            <input type="range" id="notchFreq" min="100" max="8000" value="1000">
+        </div>
+        <div class="slider-item compact">
+            <label>Bandwidth <span id="notchBandwidthValue">10</span></label>
+            <input type="range" id="notchBandwidth" min="0.1" max="30" value="10" step="0.1">
+        </div>
+        <div class="slider-item compact">
+            <label>Wet Mix <span id="notchMixValue">0%</span></label>
+            <input type="range" id="notchMix" min="0" max="100" value="0">
+        </div>
+        <div class="slider-item compact">
+            <label>LFO Rate <span id="notchLfoRateValue">1Hz</span></label>
+            <input type="range" id="notchLfoRate" min="0.01" max="20" value="1" step="0.01">
+        </div>
+        <div class="slider-item compact">
+            <label>LFO Depth <span id="notchLfoDepthValue">0%</span></label>
+            <input type="range" id="notchLfoDepth" min="0" max="100" value="0">
+        </div>
+    </div>
+</div>
+
             <!-- 8-Band Vocoder -->
             <div class="control-panel">
                 <h3>8-Band Vocoder</h3>
@@ -330,7 +374,7 @@
                 </div>
                 <div class="slider-group">
                     <div class="vocoder-bands">
-                        <div class="vocoder-band">
+                         <div class="vocoder-band">
                             <label>200Hz <span id="vocoder1Value">1.0</span></label>
                             <input type="range" id="vocoder1" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
                             <div class="lfo-indicator" id="vocoder1LfoIndicator"></div>
@@ -369,7 +413,7 @@
                             <label>4.8kHz <span id="vocoder8Value">1.0</span></label>
                             <input type="range" id="vocoder8" min="0" max="2" value="1" step="0.01" class="vocoder-slider">
                             <div class="lfo-indicator" id="vocoder8LfoIndicator"></div>
-                        </div>
+</div>
                     </div>
                     <div class="slider-item compact">
                         <label>Vocoder Mix <span id="vocoderMixValue">0%</span></label>
@@ -466,10 +510,13 @@
                         <label>Gain Boost <span id="phaserGainValue">1.0</span></label>
                         <input type="range" id="phaserGain" min="0.5" max="3" value="1" step="0.01">
                         <div class="lfo-indicator" id="phaserGainLfoIndicator"></div>
+                     <div class="slider-item compact">
+    <label>Phaser Wet Mix <span id="phaserWetMixValue">50%</span></label>
+    <input type="range" id="phaserWetMix" min="0" max="100" value="50">
+</div>
                     </div>
                 </div>
             </div>
-
             <!-- WARP Module -->
             <div class="control-panel">
                 <h3>WARP Module</h3>
@@ -504,15 +551,33 @@
                         <div class="lfo-indicator" id="warpStartLfoIndicator"></div>
                     </div>
                     <div class="slider-item compact">
+                        <label>Start LFO Speed <span id="warpStartLfoSpeedValue">1Hz</span></label>
+                        <input type="range" id="warpStartLfoSpeed" min="0.1" max="10" value="1" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Start LFO Depth <span id="warpStartLfoDepthValue">0%</span></label>
+                        <input type="range" id="warpStartLfoDepth" min="0" max="100" value="0">
+                    </div>
+                    <div class="slider-item compact">
                         <label>Loop Length <span id="warpLengthValue">20ms</span></label>
                         <input type="range" id="warpLength" min="1" max="20" value="20" step="0.1">
                         <div class="lfo-indicator" id="warpLengthLfoIndicator"></div>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Length LFO Speed <span id="warpLengthLfoSpeedValue">1Hz</span></label>
+                        <input type="range" id="warpLengthLfoSpeed" min="0.1" max="10" value="1" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Length LFO Depth <span id="warpLengthLfoDepthValue">0%</span></label>
+                        <input type="range" id="warpLengthLfoDepth" min="0" max="100" value="0">
                     </div>
                     <div class="button-group">
                         <button id="warpToggle" class="control-btn">WARP</button>
                     </div>
                 </div>
             </div>
+
+           
 
             <!-- 3D Panner & Frequency Shifter -->
             <div class="control-panel">
@@ -559,17 +624,16 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Enhanced Multi-Tap Delay -->
+            <!-- PT2399 Analog Delay -->
             <div class="control-panel">
-                <h3>Multi-Tap Granular Delay</h3>
+                <h3>PT2399 Analog Delay</h3>
                 <div class="panel-icon">
                     <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M2 8h12"/>
-                        <circle cx="3" cy="8" r="1"/>
-                        <circle cx="6" cy="8" r="1"/>
-                        <circle cx="9" cy="8" r="1"/>
-                        <circle cx="12" cy="8" r="1"/>
+                        <rect x="2" y="6" width="12" height="4" rx="1"/>
+                        <circle cx="5" cy="8" r="1"/>
+                        <circle cx="8" cy="8" r="1"/>
+                        <circle cx="11" cy="8" r="1"/>
+                        <path d="M14 8h-2M4 8H2"/>
                     </svg>
                 </div>
                 <div class="panel-screws">
@@ -580,49 +644,28 @@
                 </div>
                 <div class="slider-group">
                     <div class="slider-item compact">
-                        <label>Length <span id="delayTimeValue">200ms</span></label>
-                        <input type="range" id="delayTime" min="0.01" max="5" value="0.2" step="0.01">
-                        <div class="lfo-indicator" id="delayTimeLfoIndicator"></div>
+                        <label>Time <span id="pt2399TimeValue">200ms</span></label>
+                        <input type="range" id="pt2399Time" min="20" max="600" value="200">
                     </div>
                     <div class="slider-item compact">
-                        <label>Feedback <span id="delayFeedbackValue">30%</span></label>
-                        <input type="range" id="delayFeedback" min="0" max="0.95" value="0.3" step="0.01">
-                        <div class="lfo-indicator" id="delayFeedbackLfoIndicator"></div>
+                        <label>Feedback <span id="pt2399FeedbackValue">30%</span></label>
+                        <input type="range" id="pt2399Feedback" min="0" max="95" value="30">
                     </div>
                     <div class="slider-item compact">
-                        <label>Taps <span id="delayTapsValue">4</span></label>
-                        <input type="range" id="delayTaps" min="1" max="8" value="4">
-                        <div class="lfo-indicator" id="delayTapsLfoIndicator"></div>
+                        <label>Wow & Flutter <span id="pt2399WowValue">0%</span></label>
+                        <input type="range" id="pt2399Wow" min="0" max="100" value="0">
                     </div>
                     <div class="slider-item compact">
-                        <label>Spread <span id="delaySpreadValue">50%</span></label>
-                        <input type="range" id="delaySpread" min="0" max="100" value="50">
-                        <div class="lfo-indicator" id="delaySpreadLfoIndicator"></div>
+                        <label>Lo-Fi Amount <span id="pt2399LoFiValue">50%</span></label>
+                        <input type="range" id="pt2399LoFi" min="0" max="100" value="50">
                     </div>
+                  <div class="slider-item compact">
+    <label>Soft Clipping <span id="pt2399SoftClipValue">0%</span></label>
+    <input type="range" id="pt2399SoftClip" min="0" max="100" value="0">
+</div>
                     <div class="slider-item compact">
-                        <label>Drift <span id="delayDriftValue">0%</span></label>
-                        <input type="range" id="delayDrift" min="0" max="100" value="0">
-                        <div class="lfo-indicator" id="delayDriftLfoIndicator"></div>
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Tape Aging <span id="delayAgingValue">0%</span></label>
-                        <input type="range" id="delayAging" min="0" max="100" value="0">
-                        <div class="lfo-indicator" id="delayAgingLfoIndicator"></div>
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Flutter <span id="delayFlutterValue">0%</span></label>
-                        <input type="range" id="delayFlutter" min="0" max="100" value="0">
-                        <div class="lfo-indicator" id="delayFlutterLfoIndicator"></div>
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Soft Clip <span id="delaySoftClipValue">0%</span></label>
-                        <input type="range" id="delaySoftClip" min="0" max="100" value="0">
-                        <div class="lfo-indicator" id="delaySoftClipLfoIndicator"></div>
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Mix <span id="delayMixValue">0%</span></label>
-                        <input type="range" id="delayMix" min="0" max="1" value="0" step="0.01">
-                        <div class="lfo-indicator" id="delayMixLfoIndicator"></div>
+                        <label>Mix <span id="pt2399MixValue">0%</span></label>
+                        <input type="range" id="pt2399Mix" min="0" max="100" value="0">
                     </div>
                 </div>
             </div>
@@ -722,27 +765,37 @@
                         <div class="seq-step">
                             <label>1 <span id="stringSeqStep1Value">440</span></label>
                             <input type="range" id="stringSeqStep1" min="100" max="2000" value="440" class="seq-step-slider">
-                            <div class="lfo-indicator" id="stringSeqStep1LfoIndicator"></div>
+                            <div class="lfo-indicator" id="stringSeqStep1LfoIndicator">
+                              
+                            </div>
                         </div>
                         <div class="seq-step">
                             <label>2 <span id="stringSeqStep2Value">660</span></label>
                             <input type="range" id="stringSeqStep2" min="100" max="2000" value="660" class="seq-step-slider">
-                            <div class="lfo-indicator" id="stringSeqStep2LfoIndicator"></div>
+                            <div class="lfo-indicator" id="stringSeqStep2LfoIndicator">
+                               
+                            </div>
                         </div>
                         <div class="seq-step">
                             <label>3 <span id="stringSeqStep3Value">880</span></label>
                             <input type="range" id="stringSeqStep3" min="100" max="2000" value="880" class="seq-step-slider">
-                            <div class="lfo-indicator" id="stringSeqStep3LfoIndicator"></div>
+                            <div class="lfo-indicator" id="stringSeqStep3LfoIndicator">
+                               
+                            </div>
                         </div>
                         <div class="seq-step">
                             <label>4 <span id="stringSeqStep4Value">1100</span></label>
                             <input type="range" id="stringSeqStep4" min="100" max="2000" value="1100" class="seq-step-slider">
-                            <div class="lfo-indicator" id="stringSeqStep4LfoIndicator"></div>
+                            <div class="lfo-indicator" id="stringSeqStep4LfoIndicator">
+                               
+                            </div>
                         </div>
                         <div class="seq-step">
                             <label>5 <span id="stringSeqStep5Value">1320</span></label>
                             <input type="range" id="stringSeqStep5" min="100" max="2000" value="1320" class="seq-step-slider">
-                            <div class="lfo-indicator" id="stringSeqStep5LfoIndicator"></div>
+                            <div class="lfo-indicator" id="stringSeqStep5LfoIndicator">
+                            
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -802,25 +855,116 @@
                 <div class="slider-group">
                     <div class="isolator-bands">
                         <div class="isolator-band">
-                            <label>LO <span id="isolatorLoValue">100%</span></label>
-                            <input type="range" id="isolatorLo" min="0" max="1" value="1" step="0.01" class="isolator-slider">
-                            <div class="lfo-indicator" id="isolatorLoLfoIndicator"></div>
-                        </div>
-                        <div class="isolator-band">
-                            <label>MID <span id="isolatorMidValue">100%</span></label>
-                            <input type="range" id="isolatorMid" min="0" max="1" value="1" step="0.01" class="isolator-slider">
-                            <div class="lfo-indicator" id="isolatorMidLfoIndicator"></div>
-                        </div>
-                        <div class="isolator-band">
-                            <label>HI <span id="isolatorHiValue">100%</span></label>
-                            <input type="range" id="isolatorHi" min="0" max="1" value="1" step="0.01" class="isolator-slider">
-                            <div class="lfo-indicator" id="isolatorHiLfoIndicator"></div>
-                        </div>
+    <label>LO <span id="isolatorLoValue">100%</span></label>
+    <input type="range" id="isolatorLo" min="0" max="1" value="1" step="0.01" class="isolator-slider">
+    <div class="lfo-indicator" id="isolatorLoLfoIndicator"></div>
+</div>
+<div class="isolator-band">
+    <label>MID <span id="isolatorMidValue">100%</span></label>
+    <input type="range" id="isolatorMid" min="0" max="1" value="1" step="0.01" class="isolator-slider">
+    <div class="lfo-indicator" id="isolatorMidLfoIndicator"></div>
+</div>
+<div class="isolator-band">
+    <label>HI <span id="isolatorHiValue">100%</span></label>
+    <input type="range" id="isolatorHi" min="0" max="1" value="1" step="0.01" class="isolator-slider">
+    <div class="lfo-indicator" id="isolatorHiLfoIndicator"></div>
+</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liquefier Filter -->
+            <div class="control-panel">
+                <h3>Liquefier</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 2v12M12 2v12"/>
+                        <path d="M2 8h12"/>
+                        <circle cx="8" cy="8" r="3"/>
+                        <path d="M8 5v6M5 8h6"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="slider-group">
+                    <div class="liquefier-mode-switch">
+                        <button class="mode-switch-btn active" id="liquefierSmoothBtn">Smooth</button>
+                        <button class="mode-switch-btn" id="liquefierSteppedBtn">Stepped</button>
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Filter Freq <span id="liquefierFreqValue">2000Hz</span></label>
+                        <input type="range" id="liquefierFreq" min="100" max="8000" value="2000">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Resonance <span id="liquefierResonanceValue">50%</span></label>
+                        <input type="range" id="liquefierResonance" min="0" max="100" value="50">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>LFO Depth <span id="liquefierDepthValue">0%</span></label>
+                        <input type="range" id="liquefierDepth" min="0" max="100" value="0">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>LFO Rate <span id="liquefierRateValue">1Hz</span></label>
+                        <input type="range" id="liquefierRate" min="0.1" max="20" value="1" step="0.1">
+                    </div>
+                    <div class="slider-item compact">
+                        <label>Wet Mix <span id="liquefierMixValue">0%</span></label>
+                        <input type="range" id="liquefierMix" min="0" max="100" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grain Speed Controller -->
+            <div class="control-panel">
+                <h3>Grain Speed</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <path d="M8 4v8M4 8h8"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="speed-controller">
+                    <div class="speed-circle" id="grainSpeedCircle">
+                        <div class="speed-glow" id="grainSpeedGlow"></div>
+                        <div class="speed-value" id="grainSpeedValue">1.0x</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loop Speed Controller -->
+            <div class="control-panel">
+                <h3>Loop Speed</h3>
+                <div class="panel-icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="8" cy="8" r="6"/>
+                        <path d="M6 8l3-3v2h3v2h-3v2l-3-3z"/>
+                    </svg>
+                </div>
+                <div class="panel-screws">
+                    <div class="screw top-left"></div>
+                    <div class="screw top-right"></div>
+                    <div class="screw bottom-left"></div>
+                    <div class="screw bottom-right"></div>
+                </div>
+                <div class="speed-controller">
+                    <div class="speed-circle" id="loopSpeedCircle">
+                        <div class="speed-glow" id="loopSpeedGlow"></div>
+                        <div class="speed-value" id="loopSpeedValue">1.0x</div>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Instructions -->
         <div class="instructions">
             <h3>Controls</h3>
@@ -847,16 +991,16 @@
                     <ul>
                         <li><strong>RESET</strong> - Reset all parameters</li>
                         <li><strong>MUTE</strong> - Toggle audio mute</li>
-                        <li><strong>RECORD</strong> - Record & save your realtime audio</li>
-                        <li><strong>LOOP</strong> - Scrolls playhead through entire waveform</li>
-                        <li><strong>WARP</strong> - Locks in a high frequency micro-loop</li>
+                        <li><strong>RECORD</strong> - Record & save realtime audio</li>
+                        <li><strong>LOOP</strong> - Scrolls playhead through waveform</li>
                     </ul>
                 </div>
+                
             </div>
             <div id="performanceIndicator" class="performance-indicator">
-    <span id="fpsDisplay">FPS: --</span>
-    <span id="gradeDisplay">Grade: --</span>
-</div>
+                <span id="fpsDisplay">FPS: --</span>
+                <span id="gradeDisplay">Grade: --</span>
+            </div>
         </div>
     </div>
 
@@ -864,3 +1008,4 @@
     
 </body>
 </html>
+
