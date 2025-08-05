@@ -75,14 +75,15 @@ Time Stretch (0.1-4x) - Playback speed without pitch change<br>
 
 **ARPEGGIATOR**
 <br>
-3x3 Grid - 9-step clickable pattern grid for arpeggio sequence:<br> 
-- Activate block to enable note per-scale<br> 
-- Inactive blocks skip corresponding scale note<br>
-- Active grid number dictates arp pattern length<br>
+3x3 Grid - 9-step clickable pattern grid for arpeggio sequence<br> 
 Scale Selection - Chromatic, Major, Minor, Dorian, Phrygian, Mixolydian<br>
 Rate (0.5-20Hz) - Arpeggio clock speed driven by sine wave LFO<br>
 Squeeze (0-100%) - LFO waveshaping for rhythmic timing variations<br>
 START/STOP - Enable/disable arpeggiator (triggers when chromatic keys pressed)<br>
+
+- Activate block to enable note per-scale<br> 
+- Inactive blocks skip corresponding scale note<br>
+- Active grid number dictates arp pattern length<br>
 
 **BANDPASS FILTER & LFO**
 <br>
