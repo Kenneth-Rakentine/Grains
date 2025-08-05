@@ -328,7 +328,7 @@ this.loopSpeed = 1.0;
 this.grainSpeedActive = false;
 this.loopSpeedActive = false;
 
-this.initAudio();
+
         this.setupEventListeners();
         this.setupKeyboardControls();
         this.setupMobileKeyboard();
@@ -341,6 +341,9 @@ this.initAudio();
         this.iosAudioUnlocked = false;
         this.audioChainConnected = false;
         this.iosFirstPlayComplete = false;
+
+        // In constructor, after other properties
+this.audioInitialized = false;
     }
 
      // Simple audio context creation (v.12 style)
@@ -3575,134 +3578,25 @@ this.setScanPosition(1/9);
     }
 
  async togglePlayback() {
-    // Create debug function that works even if debugLog doesn't exist yet
-    const log = (msg) => {
-        console.log(msg);
-        const debugLog = document.getElementById('debugLog');
-        if (debugLog) {
-            const time = new Date().toTimeString().split(' ')[0];
-            debugLog.innerHTML = `<div>[${time}] ${msg}</div>` + debugLog.innerHTML;
-            if (debugLog.children.length > 20) {
-                debugLog.removeChild(debugLog.lastChild);
-            }
-        }
-    };
+    if (!this.audioBuffer) return;
     
-    log('=== PLAY CLICKED ===');
-    log(`User Agent: ${navigator.userAgent.substring(0, 50)}...`);
-    
-    if (!this.audioBuffer) {
-        log('❌ No audio buffer loaded!');
-        return;
+    // Initialize audio on first play (iOS needs this)
+    if (!this.audioInitialized) {
+        console.log('First play - initializing audio system...');
+        await this.initAudio();
+        this.audioInitialized = true;
+        console.log('Audio system initialized');
     }
-    log('✓ Audio buffer exists');
     
-    // Check audio context
-    if (!this.audioContext) {
-        log('❌ No AudioContext! Creating...');
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            log(`✓ Created context: ${this.audioContext.state}`);
-        } catch (e) {
-            log(`❌ Context creation failed: ${e.message}`);
-            return;
-        }
+    // Simple resume if needed
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+    }
+    
+    if (this.isPlaying) {
+        this.stopPlayback();
     } else {
-        log(`AudioContext exists: ${this.audioContext.state}`);
-    }
-    
-    // Log audio context details
-    log(`Sample Rate: ${this.audioContext.sampleRate}`);
-    log(`Current Time: ${this.audioContext.currentTime}`);
-    
-    // Try to resume if suspended
-    if (this.audioContext.state === 'suspended') {
-        log('Context suspended - attempting resume...');
-        try {
-            const startTime = Date.now();
-            await this.audioContext.resume();
-            const elapsed = Date.now() - startTime;
-            log(`✓ Resume took ${elapsed}ms`);
-            log(`State after resume: ${this.audioContext.state}`);
-            
-            // iOS needs a delay
-            log('Waiting 200ms for iOS...');
-            await new Promise(resolve => setTimeout(resolve, 200));
-            log(`State after delay: ${this.audioContext.state}`);
-        } catch (error) {
-            log(`❌ Resume failed: ${error.message}`);
-        }
-    }
-    
-    // Try dummy buffer trick if still not running
-    if (this.audioContext.state !== 'running') {
-        log('Trying dummy buffer trick...');
-        try {
-            const buffer = this.audioContext.createBuffer(1, 1, 22050);
-            const source = this.audioContext.createBufferSource();
-            source.buffer = buffer;
-            
-            // Try to connect to destination
-            source.connect(this.audioContext.destination);
-            source.start(0);
-            
-            log('Dummy buffer played, resuming again...');
-            await this.audioContext.resume();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            log(`State after dummy: ${this.audioContext.state}`);
-        } catch (e) {
-            log(`❌ Dummy buffer failed: ${e.message}`);
-        }
-    }
-    
-  // Final check
-    if (this.audioContext.state === 'running') {
-        log('✓✓✓ Audio context is RUNNING!');
-        
-        // CRITICAL FIX: Force reconnect audio chain when resuming from suspended
-        // This is needed because iOS doesn't properly connect nodes while suspended
-        if (!this.iosFirstPlayComplete) {
-            log('First play after suspension - reconnecting entire audio chain...');
-            try {
-                // Reconnect the entire audio chain
-                this.connectAudioNodes();
-                
-                // Also ensure final output is connected
-                if (this.masterGainNode && this.volumeBooster) {
-                    this.masterGainNode.disconnect();
-                    this.volumeBooster.disconnect();
-                    this.masterGainNode.connect(this.volumeBooster);
-                    this.volumeBooster.connect(this.audioContext.destination);
-                }
-                
-                log('✓ Audio chain fully reconnected');
-                this.iosFirstPlayComplete = true;
-            } catch (e) {
-                log(`❌ Reconnect failed: ${e.message}`);
-            }
-        }
-        
-        if (this.isPlaying) {
-            log('Stopping playback...');
-            this.stopPlayback();
-            log('✓ Stopped');
-        } else {
-            log('Starting playback...');
-            try {
-                await this.startPlayback();
-                log('✓ Playback started!');
-                
-                // Log first grain creation
-                setTimeout(() => {
-                    log(`Active grains: ${this.grains.length}`);
-                }, 500);
-            } catch (e) {
-                log(`❌ Start failed: ${e.message}`);
-            }
-        }
-    } else {
-        log(`❌❌❌ Context still ${this.audioContext.state}`);
-        log('Try tapping play again...');
+        this.startPlayback();
     }
 }
     
