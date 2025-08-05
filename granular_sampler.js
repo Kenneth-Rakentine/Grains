@@ -328,36 +328,16 @@ this.loopSpeed = 1.0;
 this.grainSpeedActive = false;
 this.loopSpeedActive = false;
 
-
+this.initAudio();
         this.setupEventListeners();
         this.setupKeyboardControls();
         this.setupMobileKeyboard();
         this.setupGrainAnimation();
         this.setupVisualEffects();
         this.storeDefaultValues();
-      this.setupPresets();
-        
-        // iOS audio state tracking
-        this.iosAudioUnlocked = false;
-        this.audioChainConnected = false;
-        this.iosFirstPlayComplete = false;
-
-        // In constructor, after other properties
-this.audioInitialized = false;
+        this.setupPresets();
     }
 
-     // Simple audio context creation (v.12 style)
-    createAudioContext() {
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            console.log('Audio context created, state:', this.audioContext.state);
-        } catch (error) {
-            console.error('Failed to create audio context:', error);
-        }
-    }
-    
-  
-   
     storeDefaultValues() {
         this.defaultValues = {
             grainSize: 50,
@@ -551,17 +531,12 @@ arpScale: 'chromatic',
         requestAnimationFrame(() => this.animateVisualEffects());
     }
 
-   async initAudio() {
-    // Simple audio context creation
-    this.createAudioContext();
-    
-    if (!this.audioContext) {
-        console.error('Failed to create audio context');
-        return;
-    }
-    // Create mute control
-    this.muteGainNode = this.audioContext.createGain();
-    this.muteGainNode.gain.value = 1;
+    async initAudio() {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create mute control
+        this.muteGainNode = this.audioContext.createGain();
+        this.muteGainNode.gain.value = 1;
         
         // Create volume booster
         this.volumeBooster = this.audioContext.createDynamicsCompressor();
@@ -627,7 +602,6 @@ arpScale: 'chromatic',
         await this.initArpeggiator();
         // Connect signal path
         this.connectAudioNodes();
-        this.audioChainConnected = true;
     }
 
     // Initialize Comb Seq LFO System
@@ -2266,7 +2240,13 @@ arpScale: 'chromatic',
         this.reverbNode.buffer = impulse;
     }
     
-   
+    async resumeAudioContext() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            console.log('Resuming audio context...');
+            await this.audioContext.resume();
+            console.log('Audio context state:', this.audioContext.state);
+        }
+    }
     
     updateVolumeBoost() {
         if (this.volume >= 1.9) {
@@ -2587,13 +2567,10 @@ arpScale: 'chromatic',
             if (e.target.files.length > 0) this.loadAudioFile(e.target.files[0]);
         });
         
-  // Universal play button handler
-        const playButton = document.getElementById('playButton');
-        if (playButton) {
-            playButton.addEventListener('click', async () => {
-                await this.togglePlayback();
-            });
-        }
+        // Transport controls
+        document.getElementById('playButton').addEventListener('click', () => {
+            this.togglePlayback();
+        });
         
         document.getElementById('recordButton').addEventListener('click', () => {
             this.toggleRecording();
@@ -3292,6 +3269,7 @@ updateNotchFilter() {
         document.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             
+            this.resumeAudioContext();
             
             if (key === ' ') {
                 e.preventDefault();
@@ -3577,50 +3555,30 @@ this.setScanPosition(1/9);
         this.setScanPosition(newPosition);
     }
 
- async togglePlayback() {
-    if (!this.audioBuffer) return;
-    
-    // Initialize audio on first play (iOS needs this)
-    if (!this.audioInitialized) {
-        console.log('First play - initializing audio system...');
-        await this.initAudio();
-        this.audioInitialized = true;
-        console.log('Audio system initialized');
-    }
-    
-    // Simple resume if needed
-    if (this.audioContext && this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-    }
-    
-    if (this.isPlaying) {
-        this.stopPlayback();
-    } else {
-        this.startPlayback();
-    }
-}
-    
-  async startPlayback() {
-    if (!this.audioBuffer || this.isPlaying) return;
-    
-    // Double-check audio context state
-    if (this.audioContext.state !== 'running') {
-        console.warn('Audio context not running at playback start');
-        const success = await this.unlockAudioContext();
-        if (!success) {
-            console.error('Cannot start playback - audio context locked');
-            document.getElementById('status').textContent = 'Audio blocked - please interact and try again';
-            return;
+    async togglePlayback() {
+        if (!this.audioBuffer) return;
+        
+        await this.resumeAudioContext();
+        
+        if (this.isPlaying) {
+            this.stopPlayback();
+        } else {
+            await this.startPlayback();
         }
     }
     
-    this.isPlaying = true;
-    document.getElementById('playingStatus').textContent = 'Playing';
-    document.getElementById('playButton').textContent = '⏸ STOP';
-    document.getElementById('playButton').classList.add('playing');
-    
-    this.scheduleGrains();
-}
+    async startPlayback() {
+        if (!this.audioBuffer || this.isPlaying) return;
+        
+        await this.resumeAudioContext();
+        
+        this.isPlaying = true;
+        document.getElementById('playingStatus').textContent = 'Playing';
+        document.getElementById('playButton').textContent = '⏸ STOP';
+        document.getElementById('playButton').classList.add('playing');
+        
+        this.scheduleGrains();
+    }
     
     stopPlayback() {
         this.isPlaying = false;
@@ -4434,4 +4392,3 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 console.log('GRAINS Enhanced Granular Sampler v.18 - All systems loaded');
-
