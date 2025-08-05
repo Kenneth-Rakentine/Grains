@@ -6,7 +6,7 @@ console.log(`
 ░░░░██║░░╚██╗██╔══██╗██╔══██║██║██║╚████║░╚═══██╗░░░
 ░░░░╚██████╔╝██║░░██║██║░░██║██║██║░╚███║██████╔╝░░░
 ░░░░░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝╚═╝░░╚══╝╚═════╝░░░░
-                    v.17
+                    v.18
 `);
 
 class GranularSampler {
@@ -296,6 +296,29 @@ class GranularSampler {
         this.fallingDust = [];
         this.glassEffects = [];
         
+// Arpeggiator
+this.arpeggiatorEnabled = false;
+this.arpLfo = null;
+this.arpRate = 4;
+this.arpSqueeze = 0;
+this.arpScale = 'chromatic';
+this.arpPattern = [true, false, false, false, false, false, false, false, false]; // 3x3 grid
+this.arpCurrentStep = 0;
+this.arpBaseNote = 0; // Semitones from root
+this.arpIsPlaying = false;
+this.arpStepTimer = null;
+
+// Scale definitions (intervals in semitones)
+this.scales = {
+    chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    major: [0, 2, 4, 5, 7, 9, 11],
+    minor: [0, 2, 3, 5, 7, 8, 10],
+    dorian: [0, 2, 3, 5, 7, 9, 10],
+    phrygian: [0, 1, 3, 5, 7, 8, 10],
+    mixolydian: [0, 2, 4, 5, 7, 9, 10]
+};
+
+
         // Store default values for reset function
 this.defaultValues = {};
 
@@ -394,6 +417,9 @@ notchFilterWetMix: 0,
 notchFilterLfoRate: 1,
 notchFilterLfoDepth: 0,
 phaserWetMix: 50,
+arpRate: 4,
+arpSqueeze: 0,
+arpScale: 'chromatic',
         };
     }
 
@@ -573,6 +599,7 @@ phaserWetMix: 50,
         await this.initPingResonator(); // RENAMED from initTResonator
         await this.initLiquefierFilter();
         await this.initNotchFilter();
+        await this.initArpeggiator();
         // Connect signal path
         this.connectAudioNodes();
     }
@@ -2629,7 +2656,26 @@ phaserWetMix: 50,
             this.updateWarp();
         });
 
-        
+        // Arpeggiator controls
+document.getElementById('arpToggle').addEventListener('click', () => {
+    this.toggleArpeggiator();
+});
+
+// Second loop button sync
+document.getElementById('looperToggle2').addEventListener('click', () => {
+    this.looperEnabled = !this.looperEnabled;
+    document.getElementById('looperToggle').classList.toggle('active', this.looperEnabled);
+    document.getElementById('looperToggle2').classList.toggle('active', this.looperEnabled);
+});
+
+// Sync main loop button with second one
+const originalLooperToggle = document.getElementById('looperToggle');
+originalLooperToggle.addEventListener('click', () => {
+    document.getElementById('looperToggle2').classList.toggle('active', this.looperEnabled);
+});
+
+// Arpeggiator grid
+this.setupArpeggiatorGrid();
         
         // Chromatic Envelope controls
         document.getElementById('envelopeLoopToggle').addEventListener('click', () => {
@@ -2662,81 +2708,10 @@ if (grainsLogo) {
     });
 } 
         this.setupSliderControls();
-        this.setupSpeedControllers();
+        
     }
 
-    setupSpeedControllers() {
-    // Grain Speed Controller
-    const grainSpeedCircle = document.getElementById('grainSpeedCircle');
-    const grainSpeedGlow = document.getElementById('grainSpeedGlow');
-    const grainSpeedValue = document.getElementById('grainSpeedValue');
-    
-    let isDraggingGrain = false;
-    let startY = 0;
-    
-    grainSpeedCircle.addEventListener('mousedown', (e) => {
-        isDraggingGrain = true;
-        startY = e.clientY;
-        this.grainSpeedActive = true;
-        grainSpeedCircle.classList.add('active');
-        e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (isDraggingGrain) {
-            const deltaY = startY - e.clientY;
-            const newSpeed = Math.max(0.1, Math.min(4.0, this.grainSpeed + (deltaY * 0.01)));
-            this.grainSpeed = newSpeed;
-            
-            const glowSize = Math.min(90, 20 + (newSpeed - 1) * 30);
-            grainSpeedGlow.style.width = glowSize + '%';
-            grainSpeedGlow.style.height = glowSize + '%';
-            grainSpeedGlow.style.opacity = Math.min(0.8, 0.2 + (newSpeed - 1) * 0.3);
-            
-            grainSpeedValue.textContent = newSpeed.toFixed(1) + 'x';
-            startY = e.clientY;
-        }
-    });
-    
-    document.addEventListener('mouseup', () => {
-        isDraggingGrain = false;
-    });
-    
-    // Loop Speed Controller
-    const loopSpeedCircle = document.getElementById('loopSpeedCircle');
-    const loopSpeedGlow = document.getElementById('loopSpeedGlow');
-    const loopSpeedValue = document.getElementById('loopSpeedValue');
-    
-    let isDraggingLoop = false;
-    
-    loopSpeedCircle.addEventListener('mousedown', (e) => {
-        isDraggingLoop = true;
-        startY = e.clientY;
-        this.loopSpeedActive = true;
-        loopSpeedCircle.classList.add('active');
-        e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', (e) => {
-        if (isDraggingLoop) {
-            const deltaY = startY - e.clientY;
-            const newSpeed = Math.max(0.1, Math.min(4.0, this.loopSpeed + (deltaY * 0.01)));
-            this.loopSpeed = newSpeed;
-            
-            const glowSize = Math.min(90, 20 + (newSpeed - 1) * 30);
-            loopSpeedGlow.style.width = glowSize + '%';
-            loopSpeedGlow.style.height = glowSize + '%';
-            loopSpeedGlow.style.opacity = Math.min(0.8, 0.2 + (newSpeed - 1) * 0.3);
-            
-            loopSpeedValue.textContent = newSpeed.toFixed(1) + 'x';
-            startY = e.clientY;
-        }
-    });
-    
-    document.addEventListener('mouseup', () => {
-        isDraggingLoop = false;
-    });
-}
+ 
 
     setupSliderControls() {
     const sliders = {
@@ -3155,7 +3130,31 @@ stringSeqStep5: (val) => {
             this.liquefierMix = parseInt(val);
             this.updateLiquefierFilter();
             document.getElementById('liquefierMixValue').textContent = val + '%';
-        }
+        },
+
+        // Speed controls (replacing circular controllers)
+grainSpeed: (val) => {
+    this.grainSpeed = parseFloat(val);
+    document.getElementById('grainSpeedValue').textContent = val + 'x';
+},
+loopSpeed: (val) => {
+    this.loopSpeed = parseFloat(val);
+    document.getElementById('loopSpeedValue').textContent = val + 'x';
+},
+
+// Arpeggiator
+arpRate: (val) => {
+    this.arpRate = parseFloat(val);
+    if (this.arpLfo) {
+        this.arpLfo.frequency.value = this.arpRate;
+    }
+    document.getElementById('arpRateValue').textContent = val + 'Hz';
+},
+arpSqueeze: (val) => {
+    this.arpSqueeze = parseInt(val);
+    document.getElementById('arpSqueezeValue').textContent = val + '%';
+},
+
     };
     
     // Add event listeners
@@ -3173,6 +3172,10 @@ stringSeqStep5: (val) => {
         this.lfoShape = e.target.value;
         this.updateLFO();
     });
+    // Arpeggiator scale select
+document.getElementById('arpScale').addEventListener('change', (e) => {
+    this.arpScale = e.target.value;
+});
 }
 
 // Mark sliders as changed with green glow
@@ -3986,6 +3989,170 @@ this.loopPosition += grainAdvancement;
         return leftPoint.y + (rightPoint.y - leftPoint.y) * ratio;
     }
 
+
+// Arpeggiator Functions
+setupArpeggiatorGrid() {
+    const grid = document.getElementById('arpGrid');
+    const steps = grid.querySelectorAll('.arp-step');
+    
+    steps.forEach((step, index) => {
+        step.addEventListener('click', () => {
+            this.toggleArpStep(index);
+        });
+        
+        // Touch events for mobile
+        step.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.toggleArpStep(index);
+        });
+    });
+}
+
+toggleArpStep(index) {
+    this.arpPattern[index] = !this.arpPattern[index];
+    const step = document.querySelector(`.arp-step[data-step="${index}"]`);
+    step.classList.toggle('active', this.arpPattern[index]);
+}
+
+toggleArpeggiator() {
+    this.arpeggiatorEnabled = !this.arpeggiatorEnabled;
+    const button = document.getElementById('arpToggle');
+    
+    if (this.arpeggiatorEnabled) {
+        button.textContent = 'STOP';
+        button.classList.add('active');
+        this.startArpeggiator();
+    } else {
+        button.textContent = 'START';
+        button.classList.remove('active');
+        this.stopArpeggiator();
+    }
+}
+
+async initArpeggiator() {
+    this.arpLfo = this.audioContext.createOscillator();
+    this.arpLfo.type = 'sine';
+    this.arpLfo.frequency.value = this.arpRate;
+    this.arpLfo.start();
+}
+
+startArpeggiator() {
+    if (!this.arpLfo) {
+        this.initArpeggiator();
+    }
+    
+    this.arpCurrentStep = 0;
+    this.arpIsPlaying = true;
+    this.scheduleArpStep();
+}
+
+stopArpeggiator() {
+    this.arpIsPlaying = false;
+    if (this.arpStepTimer) {
+        clearTimeout(this.arpStepTimer);
+    }
+    
+    // Remove playing class from all steps
+    document.querySelectorAll('.arp-step').forEach(step => {
+        step.classList.remove('playing');
+    });
+}
+
+scheduleArpStep() {
+    if (!this.arpIsPlaying || !this.arpeggiatorEnabled) return;
+    
+    // Find next active step
+    let foundActive = false;
+    let searchStep = this.arpCurrentStep;
+    
+    for (let i = 0; i < 9; i++) {
+        if (this.arpPattern[searchStep]) {
+            foundActive = true;
+            break;
+        }
+        searchStep = (searchStep + 1) % 9;
+    }
+    
+    if (foundActive) {
+        this.arpCurrentStep = searchStep;
+        this.playArpStep(this.arpCurrentStep);
+    }
+    
+    // Calculate next step time with squeeze
+    let stepTime = 1000 / this.arpRate; // Base time in ms
+    
+    if (this.arpSqueeze > 0) {
+        // Apply squeeze to make timing more staccato
+        const squeeze = 1 + (this.arpSqueeze / 100) * 9;
+        const phase = (Date.now() * this.arpRate / 1000) % 1;
+        const squeezeWave = Math.tanh(Math.sin(phase * Math.PI * 2) * squeeze) / Math.tanh(squeeze);
+        stepTime *= (0.5 + Math.abs(squeezeWave) * 0.5);
+    }
+    
+    this.arpCurrentStep = (this.arpCurrentStep + 1) % 9;
+    
+    this.arpStepTimer = setTimeout(() => {
+        this.scheduleArpStep();
+    }, stepTime);
+}
+
+playArpStep(stepIndex) {
+    // Remove playing class from all steps
+    document.querySelectorAll('.arp-step').forEach(step => {
+        step.classList.remove('playing');
+    });
+    
+    // Add playing class to current step
+    const currentStepElement = document.querySelector(`.arp-step[data-step="${stepIndex}"]`);
+    if (currentStepElement) {
+        currentStepElement.classList.add('playing');
+    }
+    
+    // Calculate note based on scale and step position
+    const scaleIntervals = this.scales[this.arpScale];
+    const noteIndex = stepIndex % scaleIntervals.length;
+    const octaveOffset = Math.floor(stepIndex / scaleIntervals.length) * 12;
+    const finalNote = this.arpBaseNote + scaleIntervals[noteIndex] + octaveOffset;
+    
+    // Apply pitch change temporarily
+    const previousPitch = this.currentPitch;
+    this.currentPitch = Math.pow(2, finalNote / 12);
+    
+    // Reset pitch after a short time
+    setTimeout(() => {
+        this.currentPitch = previousPitch;
+    }, 100);
+}
+
+// Override the updateCurrentPitch function to trigger arpeggiator
+updateCurrentPitch() {
+    if (this.activePitchKeys.size === 0) {
+        this.currentPitch = 1.0;
+        this.arpBaseNote = 0;
+        return;
+    }
+    
+    const chromaticKeys = {
+        'q': -12, 'w': -11, 'e': -10, 'r': -9, 't': -8, 'y': -7, 'u': -6, 'i': -5, 'o': -4, 'p': -3,
+        'a': -2, 's': -1, 'd': 0, 'f': 1, 'g': 2, 'h': 3, 'j': 4, 'k': 5, 'l': 6,
+        'z': 7, 'x': 8, 'c': 9, 'v': 10, 'b': 11, 'n': 12, 'm': 13
+    };
+    
+    let highestSemitone = -999;
+    for (const key of this.activePitchKeys) {
+        if (chromaticKeys[key] > highestSemitone) {
+            highestSemitone = chromaticKeys[key];
+        }
+    }
+    
+    this.arpBaseNote = highestSemitone;
+    
+    if (!this.arpeggiatorEnabled) {
+        this.currentPitch = Math.pow(2, highestSemitone / 12);
+    }
+}
+
+
     // Recording functions
     async startRecording() {
         try {
@@ -4214,4 +4381,4 @@ window.addEventListener('unhandledrejection', (event) => {
     }
 });
 
-console.log('GRAINS Enhanced Granular Sampler v.16 - All systems loaded');
+console.log('GRAINS Enhanced Granular Sampler v.18 - All systems loaded');
