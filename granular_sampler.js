@@ -3572,56 +3572,105 @@ this.setScanPosition(1/9);
     }
 
  async togglePlayback() {
-    if (!this.audioBuffer) return;
+    // Create debug function that works even if debugLog doesn't exist yet
+    const log = (msg) => {
+        console.log(msg);
+        const debugLog = document.getElementById('debugLog');
+        if (debugLog) {
+            const time = new Date().toTimeString().split(' ')[0];
+            debugLog.innerHTML = `<div>[${time}] ${msg}</div>` + debugLog.innerHTML;
+            if (debugLog.children.length > 20) {
+                debugLog.removeChild(debugLog.lastChild);
+            }
+        }
+    };
     
-    // iOS-specific: Create audio context on first play if needed
-    if (!this.audioContext || this.audioContext.state === 'closed') {
-        this.createAudioContext();
-        if (!this.audioContext) {
-            document.getElementById('status').textContent = 'Could not start audio - please reload';
+    log('=== PLAY CLICKED ===');
+    log(`User Agent: ${navigator.userAgent.substring(0, 50)}...`);
+    
+    if (!this.audioBuffer) {
+        log('❌ No audio buffer loaded!');
+        return;
+    }
+    log('✓ Audio buffer exists');
+    
+    // Check audio context
+    if (!this.audioContext) {
+        log('❌ No AudioContext! Creating...');
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            log(`✓ Created context: ${this.audioContext.state}`);
+        } catch (e) {
+            log(`❌ Context creation failed: ${e.message}`);
             return;
         }
-        // Recreate entire audio chain for new context
-        await this.initAudio();
+    } else {
+        log(`AudioContext exists: ${this.audioContext.state}`);
     }
     
-    // Simple iOS unlock - this is the v.12 magic
+    // Log audio context details
+    log(`Sample Rate: ${this.audioContext.sampleRate}`);
+    log(`Current Time: ${this.audioContext.currentTime}`);
+    
+    // Try to resume if suspended
     if (this.audioContext.state === 'suspended') {
+        log('Context suspended - attempting resume...');
         try {
+            const startTime = Date.now();
             await this.audioContext.resume();
-            // Critical iOS delay
-            await new Promise(resolve => setTimeout(resolve, 150));
+            const elapsed = Date.now() - startTime;
+            log(`✓ Resume took ${elapsed}ms`);
+            log(`State after resume: ${this.audioContext.state}`);
+            
+            // iOS needs a delay
+            log('Waiting 200ms for iOS...');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            log(`State after delay: ${this.audioContext.state}`);
         } catch (error) {
-            console.warn('Resume failed:', error);
+            log(`❌ Resume failed: ${error.message}`);
         }
     }
     
-    // Double-check state
+    // Try dummy buffer trick if still not running
     if (this.audioContext.state !== 'running') {
-        // Try creating a dummy source to force iOS to start
+        log('Trying dummy buffer trick...');
         try {
             const buffer = this.audioContext.createBuffer(1, 1, 22050);
             const source = this.audioContext.createBufferSource();
             source.buffer = buffer;
-            source.connect(this.audioContext.destination);
-            source.start();
             
+            // Try to connect to destination
+            source.connect(this.audioContext.destination);
+            source.start(0);
+            
+            log('Dummy buffer played, resuming again...');
             await this.audioContext.resume();
-            await new Promise(resolve => setTimeout(resolve, 150));
+            await new Promise(resolve => setTimeout(resolve, 100));
+            log(`State after dummy: ${this.audioContext.state}`);
         } catch (e) {
-            console.warn('Dummy source failed:', e);
+            log(`❌ Dummy buffer failed: ${e.message}`);
         }
     }
     
+    // Final check
     if (this.audioContext.state === 'running') {
+        log('✓✓✓ Audio context is RUNNING!');
         if (this.isPlaying) {
+            log('Stopping playback...');
             this.stopPlayback();
+            log('✓ Stopped');
         } else {
-            await this.startPlayback();
+            log('Starting playback...');
+            try {
+                await this.startPlayback();
+                log('✓ Playback started!');
+            } catch (e) {
+                log(`❌ Start failed: ${e.message}`);
+            }
         }
     } else {
-        document.getElementById('status').textContent = 'Tap play again';
-        console.warn('Audio context still not running:', this.audioContext.state);
+        log(`❌❌❌ Context still ${this.audioContext.state}`);
+        log('Try tapping play again...');
     }
 }
     

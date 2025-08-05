@@ -11,6 +11,16 @@
     <link rel="stylesheet" href="granular_sampler.css">
 </head>
 <body>
+    <!-- Mobile Debug Panel -->
+<div id="debugPanel" style="position: fixed; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; z-index: 10000; border: 2px solid #0f0; display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <span style="color: #ff0;">🔧 DEBUG LOG</span>
+        <button onclick="document.getElementById('debugLog').innerHTML=''" style="background: #f00; color: #fff; border: none; padding: 2px 8px;">CLEAR</button>
+    </div>
+    <div id="debugLog"></div>
+</div>
+<button id="debugToggle" onclick="document.getElementById('debugPanel').style.display = document.getElementById('debugPanel').style.display === 'none' ? 'block' : 'none'" style="position: fixed; bottom: 10px; right: 10px; z-index: 10001; padding: 8px; background: #0f0; color: #000; border: none; font-weight: bold;">DEBUG</button>
+
     <div class="container">
         <!-- Header with transport controls -->
         <div class="main-header">
