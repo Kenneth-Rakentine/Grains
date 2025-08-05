@@ -19,7 +19,7 @@ class GranularSampler {
         this.loopPosition = 0;
         this.looperEnabled = false;
         this.wrapEnabled = false;
-        this.scanPosition = 0;
+        this.scanPosition = 1/9; // Start at position "1" instead of "0"
         this.currentPitch = 1.0;
         this.activePitchKeys = new Set();
         
@@ -2708,7 +2708,14 @@ if (grainsLogo) {
     });
 } 
         this.setupSliderControls();
-        
+
+        // TOP button
+document.getElementById('topButton').addEventListener('click', () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+});
     }
 
  
@@ -3433,6 +3440,9 @@ updateNotchFilter() {
             document.getElementById('mobileKeyboard').style.display = 'block';
             
             this.resizeGrainCanvas();
+
+            // Set initial playhead position to "1"
+this.setScanPosition(1/9);
             
         } catch (error) {
             // FIXED: Keep load messages focused, don't show detailed errors

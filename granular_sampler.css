@@ -2237,9 +2237,67 @@ input[type="range"]:hover::-webkit-slider-thumb {
 
 .warp-lfo-label {
     color: var(--teal-primary);
+    text-transform: none !important;
 }
 
+/* TOP Button */
+.top-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--metal-medium) 0%, var(--metal-dark) 100%);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-medium);
+    z-index: 1000;
+    user-select: none;
+}
 
+.top-button:hover {
+    background: linear-gradient(135deg, var(--metal-light) 0%, var(--metal-medium) 100%);
+    border-color: var(--teal-primary);
+    box-shadow: 
+        var(--shadow-deep),
+        0 0 10px var(--teal-glow);
+    transform: translateY(-2px);
+}
+
+.top-arrow {
+    font-size: 20px;
+    color: var(--text-secondary);
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.top-text {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+.top-button:hover .top-arrow {
+    color: var(--teal-primary);
+}
+
+.top-button:hover .top-text {
+    color: var(--text-secondary);
+}
+
+.top-button:active {
+    transform: translateY(0px);
+    box-shadow: var(--shadow-light);
+}
 
 /* Special highlighting for new features */
 .new-feature {

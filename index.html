@@ -295,15 +295,15 @@
                         <div class="lfo-indicator" id="filterQLfoIndicator"></div>
                     </div>
                     <div class="slider-item compact">
-                        <label>LFO Speed <span id="lfoSpeedValue">1Hz</span></label>
+                        <label style="color: #008080;">LFO Speed <span id="lfoSpeedValue">1Hz</span></label>
                        <input type="range" id="lfoSpeed" min="0.1" max="10" value="1" step="0.1">
                     </div>
                     <div class="slider-item compact">
-                        <label>LFO Depth <span id="lfoDepthValue">0%</span></label>
+                        <label style="color: #008080;">LFO Depth <span id="lfoDepthValue">0%</span></label>
                         <input type="range" id="lfoDepth" min="0" max="100" value="0">
                     </div>
                     <div class="select-item">
-                        <label>LFO Shape</label>
+                        <label style="color: #008080;">LFO Shape</label>
                         <select id="lfoShape" class="dark-select">
                             <option value="sine">Sine</option>
                             <option value="triangle">Triangle</option>
@@ -344,11 +344,11 @@
             <input type="range" id="notchMix" min="0" max="100" value="0">
         </div>
         <div class="slider-item compact">
-            <label>LFO Rate <span id="notchLfoRateValue">1Hz</span></label>
+            <label style="color: #008080;">LFO Rate <span id="notchLfoRateValue">1Hz</span></label>
             <input type="range" id="notchLfoRate" min="0.01" max="20" value="1" step="0.01">
         </div>
         <div class="slider-item compact">
-            <label>LFO Depth <span id="notchLfoDepthValue">0%</span></label>
+            <label style="color: #008080;">LFO Depth <span id="notchLfoDepthValue">0%</span></label>
             <input type="range" id="notchLfoDepth" min="0" max="100" value="0">
         </div>
     </div>
@@ -551,26 +551,26 @@
                         <div class="lfo-indicator" id="warpStartLfoIndicator"></div>
                     </div>
                     <div class="slider-item compact">
-                        <label>Start LFO Speed <span id="warpStartLfoSpeedValue">1Hz</span></label>
-                        <input type="range" id="warpStartLfoSpeed" min="0.1" max="10" value="1" step="0.1">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Start LFO Depth <span id="warpStartLfoDepthValue">0%</span></label>
-                        <input type="range" id="warpStartLfoDepth" min="0" max="100" value="0">
-                    </div>
+    <label class="warp-lfo-label" style="color: #008080;">Start LFO Speed <span id="warpStartLfoSpeedValue">1Hz</span></label>
+    <input type="range" id="warpStartLfoSpeed" min="0.1" max="10" value="1" step="0.1">
+</div>
+<div class="slider-item compact">
+    <label class="warp-lfo-label" style="color: #008080;">Start LFO Depth <span id="warpStartLfoDepthValue">0%</span></label>
+    <input type="range" id="warpStartLfoDepth" min="0" max="100" value="0">
+</div>
                     <div class="slider-item compact">
                         <label>Loop Length <span id="warpLengthValue">20ms</span></label>
                         <input type="range" id="warpLength" min="1" max="20" value="20" step="0.1">
                         <div class="lfo-indicator" id="warpLengthLfoIndicator"></div>
                     </div>
-                    <div class="slider-item compact">
-                        <label>Length LFO Speed <span id="warpLengthLfoSpeedValue">1Hz</span></label>
-                        <input type="range" id="warpLengthLfoSpeed" min="0.1" max="10" value="1" step="0.1">
-                    </div>
-                    <div class="slider-item compact">
-                        <label>Length LFO Depth <span id="warpLengthLfoDepthValue">0%</span></label>
-                        <input type="range" id="warpLengthLfoDepth" min="0" max="100" value="0">
-                    </div>
+                   <div class="slider-item compact">
+    <label class="warp-lfo-label"style="color: #008080;">Length LFO Speed <span id="warpLengthLfoSpeedValue">1Hz</span></label>
+    <input type="range" id="warpLengthLfoSpeed" min="0.1" max="10" value="1" step="0.1">
+</div>
+<div class="slider-item compact">
+    <label class="warp-lfo-label" style="color: #008080;">Length LFO Depth <span id="warpLengthLfoDepthValue">0%</span></label>
+    <input type="range" id="warpLengthLfoDepth" min="0" max="100" value="0">
+</div>
                     <div class="button-group">
                         <button id="warpToggle" class="control-btn">WARP</button>
                     </div>
@@ -736,12 +736,12 @@
                         <canvas id="stringSeqWave" width="240" height="40"></canvas>
                     </div>
                     <div class="slider-item compact">
-                        <label>Speed <span id="stringSeqSpeedValue">4Hz</span></label>
+                        <label style="color: #008080;">Speed <span id="stringSeqSpeedValue">4Hz</span></label>
                         <input type="range" id="stringSeqSpeed" min="0.5" max="20" value="4" step="0.1">
                         <div class="lfo-indicator" id="stringSeqSpeedLfoIndicator"></div>
                     </div>
                     <div class="slider-item compact">
-                        <label>Depth <span id="stringSeqDepthValue">0%</span></label>
+                        <label style="color: #008080;">Depth <span id="stringSeqDepthValue">0%</span></label>
                         <input type="range" id="stringSeqDepth" min="0" max="100" value="0">
                         <div class="lfo-indicator" id="stringSeqDepthLfoIndicator"></div>
                     </div>
@@ -820,12 +820,12 @@
                         <canvas id="envelopeCanvas" width="280" height="120"></canvas>
                     </div>
                     <div class="slider-item compact">
-                        <label>Loop Rate <span id="envelopeRateValue">1Hz</span></label>
+                        <label style="color: #008080;">Loop Rate <span id="envelopeRateValue">1Hz</span></label>
                         <input type="range" id="envelopeRate" min="0.1" max="20" value="1" step="0.1">
                         <div class="lfo-indicator" id="envelopeRateLfoIndicator"></div>
                     </div>
                     <div class="slider-item compact">
-                        <label>Loop Depth <span id="envelopeDepthValue">0%</span></label>
+                        <label style="color: #008080;">Loop Depth <span id="envelopeDepthValue">0%</span></label>
                         <input type="range" id="envelopeDepth" min="0" max="100" value="0">
                         <div class="lfo-indicator" id="envelopeDepthLfoIndicator"></div>
                     </div>
@@ -904,11 +904,11 @@
                         <input type="range" id="liquefierResonance" min="0" max="100" value="50">
                     </div>
                     <div class="slider-item compact">
-                        <label>LFO Depth <span id="liquefierDepthValue">0%</span></label>
+                        <label style="color: #008080;">LFO Depth <span id="liquefierDepthValue">0%</span></label>
                         <input type="range" id="liquefierDepth" min="0" max="100" value="0">
                     </div>
                     <div class="slider-item compact">
-                        <label>LFO Rate <span id="liquefierRateValue">1Hz</span></label>
+                        <label style="color: #008080;">LFO Rate <span id="liquefierRateValue">1Hz</span></label>
                         <input type="range" id="liquefierRate" min="0.1" max="20" value="1" step="0.1">
                     </div>
                     <div class="slider-item compact">
@@ -959,11 +959,11 @@
             </select>
         </div>
         <div class="slider-item compact">
-            <label>Clock LFO Rate <span id="arpRateValue">4Hz</span></label>
+            <label style="color: #008080;">Clock LFO Rate <span id="arpRateValue">4Hz</span></label>
             <input type="range" id="arpRate" min="0.5" max="20" value="4" step="0.1">
         </div>
         <div class="slider-item compact">
-            <label>LFO Squeeze <span id="arpSqueezeValue">0%</span></label>
+            <label style="color: #008080;">LFO Squeeze <span id="arpSqueezeValue">0%</span></label>
             <input type="range" id="arpSqueeze" min="0" max="100" value="0">
         </div>
         <div class="button-group">
@@ -1043,6 +1043,14 @@
     </div>
 
     <script src="granular_sampler.js"></script>
+    
+    <!-- TOP Button -->
+    <div class="top-button" id="topButton">
+        <div class="top-arrow">↑</div>
+        <div class="top-text">TOP</div>
+    </div>
+    
+</body>
     
 </body>
 </html>
