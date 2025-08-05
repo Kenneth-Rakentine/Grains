@@ -73,10 +73,21 @@ Window Scan (0-100%) - Random deviation range from start position<br>
 Grain Shape - 5 envelope types: Blackman, Hanning, Down-Ramp, ExpoDec, Sine<br>
 Time Stretch (0.1-4x) - Playback speed without pitch change<br>
 
+**ARPEGGIATOR**
+<br>
+3x3 Grid - 9-step clickable pattern grid for arpeggio sequence:<br> 
+- Activate block to enable note per-scale<br> 
+- Inactive blocks skip corresponding scale note<br>
+- Active grid number dictates arp pattern length<br>
+Scale Selection - Chromatic, Major, Minor, Dorian, Phrygian, Mixolydian<br>
+Rate (0.5-20Hz) - Arpeggio clock speed driven by sine wave LFO<br>
+Squeeze (0-100%) - LFO waveshaping for rhythmic timing variations<br>
+START/STOP - Enable/disable arpeggiator (triggers when chromatic keys pressed)<br>
+
 **BANDPASS FILTER & LFO**
 <br>
 Frequency (100-8000Hz) - Resonant bandpass filter center frequency<br>
-Resonance (0.1-10) - Filter resonance/bandwidth<br>
+Resonance (0.1-3) - Filter resonance/bandwidth<br>
 LFO Speed (0.1-10Hz) - Modulation rate for filter frequency<br>
 LFO Depth (0-100%) - Modulation intensity<br>
 LFO Shape - Sine, Triangle, Sawtooth, Square waveforms<br>
@@ -84,7 +95,7 @@ LFO Shape - Sine, Triangle, Sawtooth, Square waveforms<br>
 **NOTCH FILTER**
 <br>
 Filter Freq (100-8000Hz) - Notch filter center frequency<br>
-Bandwidth (0.1-30) - Notch filter Q/bandwidth<br>
+Bandwidth (0.1-30) - Notch filter Q/bandwidth (most effective closer to 0%)<br>
 Wet Mix (0-100%) - Notch filter effect blend<br>
 LFO Rate (0.01-20Hz) - Filter frequency modulation rate<br>
 LFO Depth (0-100%) - Filter frequency modulation depth<br>
@@ -110,6 +121,7 @@ Phaser Rate (0.1-10Hz) - 12-stage phaser LFO speed<br>
 Phaser Depth (0-100%) - Frequency sweep range<br>
 Feedback (0-90%) - Phaser resonance amount<br>
 Gain Boost (0.5-3x) - Output amplification with harmonic saturation<br>
+Phaser Wet Mix (0-100%) - Phaser effect blend amount<br>
 
 **CHROMATIC ENVELOPE**
 <br>
@@ -123,7 +135,11 @@ Loop OFF/ON - Enable/disable envelope looping<br>
 WARP Toggle - Enable/disable high-frequency micro-loop effect<br>
 Loop Rate (1-100Hz) - Micro-loop repetition speed<br>
 Start Point (0-20ms) - Offset within micro-loop section<br>
+Start LFO Speed (0.1-10Hz) - Start point modulation rate<br>
+Start LFO Depth (0-100%) - Start point modulation intensity<br>
 Loop Length (1-20ms) - Duration of micro-loop section<br>
+Length LFO Speed (0.1-10Hz) - Loop length modulation rate<br>
+Length LFO Depth (0-100%) - Loop length modulation intensity<br>
 
 **3D PANNER & FREQUENCY SHIFTER**
 <br>
@@ -173,15 +189,13 @@ Resonance (0-100%) - Filter resonance/Q factor<br>
 LFO Depth (0-100%) - Random frequency modulation intensity<br>
 LFO Rate (0.1-20Hz) - Random modulation speed<br>
 Wet Mix (0-100%) - Filter effect blend<br>
-Smooth/Stepped - Choose between smooth or stepped random modulation<br>
+Smooth/Stepped - Choose between smooth or stepped random modulation (low frequency with higher resonance + increased random lfo modulation for watery motion-effect)<br>
 
-**GRAIN SPEED**
+**SPEED CONTROLS**
 <br>
-Click inside circle and drag to increase grain generation speed<br>
-
-**LOOP SPEED**
-<br>
-Click inside circle and drag to increase loop generation speed *(ONLY available when "LOOP" Button at top of screen is activated) <br>
+Grain Speed (0.1-4x) - Grain generation speed multiplier<br>
+Loop Speed (0.1-4x) - Loop playback speed multiplier *(ONLY available when "LOOP" Button is activated)<br>
+LOOP Button - Secondary loop toggle (synced with main LOOP button)<br>
 
 **MASTER CONTROLS**
 <br>
@@ -194,7 +208,7 @@ Mobile Support - Touch-friendly on-screen keyboard for mobile devices<br>
 <br>
 
 ## SIGNAL FLOW  
-<span style="color:#008080;">GRAINS → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT</span>
+<span style="color:#008080;">GRAINS → ARPEGGIATOR → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT</span>
 
 
 
