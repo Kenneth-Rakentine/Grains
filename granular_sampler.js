@@ -335,173 +335,24 @@ this.initAudio();
         this.setupGrainAnimation();
         this.setupVisualEffects();
         this.storeDefaultValues();
-       this.setupPresets();
+      this.setupPresets();
         
-        // Simple mobile audio unlock on first interaction
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            const unlockAudio = async () => {
-                if (this.audioContext && this.audioContext.state === 'suspended') {
-                    try {
-                        await this.audioContext.resume();
-                        console.log('Mobile audio unlocked');
-                    } catch (e) {
-                        console.warn('Failed to unlock mobile audio:', e);
-                    }
-                }
-            };
-            
-            ['touchstart', 'touchend', 'click'].forEach(event => {
-                document.addEventListener(event, unlockAudio, { once: true });
-            });
-        }
+        // iOS audio state tracking
+        this.iosAudioUnlocked = false;
     }
 
-     // Enhanced mobile audio context creation
-    async createAudioContextWithRetry() {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
-        let retryCount = 0;
-        const maxRetries = 3;
-        
-        while (retryCount < maxRetries) {
-            try {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                if (isMobile) {
-                    // Set up mobile-specific unlock handlers
-                    this.setupMobileAudioUnlock();
-                    
-                    // Try to unlock immediately if possible
-                    if (this.audioContext.state === 'suspended') {
-                        await this.unlockAudioContext();
-                    }
-                }
-                
-                console.log('Audio context created, state:', this.audioContext.state);
-                return;
-                
-            } catch (error) {
-                retryCount++;
-                console.warn(`Audio context creation attempt ${retryCount} failed:`, error);
-                
-                if (retryCount >= maxRetries) {
-                    throw new Error('Failed to create audio context after multiple attempts');
-                }
-                
-                // Wait before retry
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+     // Simple audio context creation (v.12 style)
+    createAudioContext() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('Audio context created, state:', this.audioContext.state);
+        } catch (error) {
+            console.error('Failed to create audio context:', error);
         }
     }
     
-    // Setup mobile audio unlock system
-    setupMobileAudioUnlock() {
-        const unlockEvents = [
-            'touchstart', 'touchend', 'mousedown', 'keydown', 
-            'click', 'contextmenu', 'pointerdown'
-        ];
-        
-        const unlockHandler = async (event) => {
-            console.log('User interaction detected:', event.type);
-            await this.unlockAudioContext();
-            
-            // Remove listeners after successful unlock
-            if (this.audioContext && this.audioContext.state === 'running') {
-                unlockEvents.forEach(eventType => {
-                    document.removeEventListener(eventType, unlockHandler, {
-                        capture: true, passive: true
-                    });
-                });
-            }
-        };
-        
-        unlockEvents.forEach(eventType => {
-            document.addEventListener(eventType, unlockHandler, {
-                once: false, // Don't use once, we'll remove manually
-                passive: true,
-                capture: true
-            });
-        });
-        
-        // iOS-specific handlers
-        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            document.addEventListener('visibilitychange', async () => {
-                if (!document.hidden && this.audioContext) {
-                    await this.unlockAudioContext();
-                }
-            });
-            
-            window.addEventListener('focus', async () => {
-                if (this.audioContext) {
-                    await this.unlockAudioContext();
-                }
-            });
-        }
-    }
-    
-    // Enhanced audio context unlock with multiple strategies
-    async unlockAudioContext() {
-        if (!this.audioContext || this.audioContext.state === 'running') {
-            return true;
-        }
-        
-        console.log('Attempting to unlock audio context...');
-        
-        // Strategy 1: Basic resume
-        try {
-            await this.audioContext.resume();
-            if (this.audioContext.state === 'running') {
-                console.log('Audio context unlocked with basic resume');
-                return true;
-            }
-        } catch (error) {
-            console.warn('Basic resume failed:', error);
-        }
-        
-        // Strategy 2: Create and play silent buffer
-        try {
-            const silentBuffer = this.audioContext.createBuffer(1, 1, 22050);
-            const source = this.audioContext.createBufferSource();
-            source.buffer = silentBuffer;
-            source.connect(this.audioContext.destination);
-            source.start(0);
-            
-            await this.audioContext.resume();
-            if (this.audioContext.state === 'running') {
-                console.log('Audio context unlocked with silent buffer');
-                return true;
-            }
-        } catch (error) {
-            console.warn('Silent buffer strategy failed:', error);
-        }
-        
-        // Strategy 3: Oscillator method
-        try {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            gainNode.gain.value = 0; // Silent
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.value = 440;
-            oscillator.start(0);
-            oscillator.stop(this.audioContext.currentTime + 0.01);
-            
-            await this.audioContext.resume();
-            if (this.audioContext.state === 'running') {
-                console.log('Audio context unlocked with oscillator method');
-                return true;
-            }
-        } catch (error) {
-            console.warn('Oscillator strategy failed:', error);
-        }
-        
-        console.warn('All unlock strategies failed');
-        return false;
-    }
-
+  
+   
     storeDefaultValues() {
         this.defaultValues = {
             grainSize: 50,
@@ -696,9 +547,13 @@ arpScale: 'chromatic',
     }
 
    async initAudio() {
-    // Enhanced mobile audio context creation with retry logic
-    await this.createAudioContextWithRetry();
+    // Simple audio context creation
+    this.createAudioContext();
     
+    if (!this.audioContext) {
+        console.error('Failed to create audio context');
+        return;
+    }
     // Create mute control
     this.muteGainNode = this.audioContext.createGain();
     this.muteGainNode.gain.value = 1;
@@ -2405,25 +2260,7 @@ arpScale: 'chromatic',
         this.reverbNode.buffer = impulse;
     }
     
-    async resumeAudioContext() {
-    if (!this.audioContext) {
-        console.warn('No audio context to resume');
-        return false;
-    }
-    
-    if (this.audioContext.state === 'suspended') {
-        console.log('Resuming suspended audio context...');
-        const success = await this.unlockAudioContext();
-        if (success) {
-            console.log('Audio context successfully resumed');
-        } else {
-            console.warn('Failed to resume audio context');
-        }
-        return success;
-    }
-    
-    return this.audioContext.state === 'running';
-}
+   
     
     updateVolumeBoost() {
         if (this.volume >= 1.9) {
@@ -3449,7 +3286,6 @@ updateNotchFilter() {
         document.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             
-            this.resumeAudioContext();
             
             if (key === ' ') {
                 e.preventDefault();
@@ -3738,33 +3574,54 @@ this.setScanPosition(1/9);
  async togglePlayback() {
     if (!this.audioBuffer) return;
     
-    // Mobile-first audio unlock (v.12 approach that worked)
+    // iOS-specific: Create audio context on first play if needed
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+        this.createAudioContext();
+        if (!this.audioContext) {
+            document.getElementById('status').textContent = 'Could not start audio - please reload';
+            return;
+        }
+        // Recreate entire audio chain for new context
+        await this.initAudio();
+    }
+    
+    // Simple iOS unlock - this is the v.12 magic
     if (this.audioContext.state === 'suspended') {
         try {
             await this.audioContext.resume();
-            console.log('Audio context resumed');
-            
-            // Critical 100ms delay for iOS Safari
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Critical iOS delay
+            await new Promise(resolve => setTimeout(resolve, 150));
         } catch (error) {
-            console.warn('Failed to resume audio context:', error);
-            // Try one more time with user interaction
-            document.getElementById('status').textContent = 'Tap play again to enable audio';
-            return;
+            console.warn('Resume failed:', error);
         }
     }
     
-    // Simple state check
+    // Double-check state
     if (this.audioContext.state !== 'running') {
-        console.warn('Audio context not running');
-        document.getElementById('status').textContent = 'Tap play again to enable audio';
-        return;
+        // Try creating a dummy source to force iOS to start
+        try {
+            const buffer = this.audioContext.createBuffer(1, 1, 22050);
+            const source = this.audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.audioContext.destination);
+            source.start();
+            
+            await this.audioContext.resume();
+            await new Promise(resolve => setTimeout(resolve, 150));
+        } catch (e) {
+            console.warn('Dummy source failed:', e);
+        }
     }
     
-    if (this.isPlaying) {
-        this.stopPlayback();
+    if (this.audioContext.state === 'running') {
+        if (this.isPlaying) {
+            this.stopPlayback();
+        } else {
+            await this.startPlayback();
+        }
     } else {
-        await this.startPlayback();
+        document.getElementById('status').textContent = 'Tap play again';
+        console.warn('Audio context still not running:', this.audioContext.state);
     }
 }
     
