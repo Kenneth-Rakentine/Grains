@@ -338,6 +338,152 @@ this.initAudio();
         this.setupPresets();
     }
 
+     // Enhanced mobile audio context creation
+    async createAudioContextWithRetry() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if (isMobile) {
+                    // Set up mobile-specific unlock handlers
+                    this.setupMobileAudioUnlock();
+                    
+                    // Try to unlock immediately if possible
+                    if (this.audioContext.state === 'suspended') {
+                        await this.unlockAudioContext();
+                    }
+                }
+                
+                console.log('Audio context created, state:', this.audioContext.state);
+                return;
+                
+            } catch (error) {
+                retryCount++;
+                console.warn(`Audio context creation attempt ${retryCount} failed:`, error);
+                
+                if (retryCount >= maxRetries) {
+                    throw new Error('Failed to create audio context after multiple attempts');
+                }
+                
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    }
+    
+    // Setup mobile audio unlock system
+    setupMobileAudioUnlock() {
+        const unlockEvents = [
+            'touchstart', 'touchend', 'mousedown', 'keydown', 
+            'click', 'contextmenu', 'pointerdown'
+        ];
+        
+        const unlockHandler = async (event) => {
+            console.log('User interaction detected:', event.type);
+            await this.unlockAudioContext();
+            
+            // Remove listeners after successful unlock
+            if (this.audioContext && this.audioContext.state === 'running') {
+                unlockEvents.forEach(eventType => {
+                    document.removeEventListener(eventType, unlockHandler, {
+                        capture: true, passive: true
+                    });
+                });
+            }
+        };
+        
+        unlockEvents.forEach(eventType => {
+            document.addEventListener(eventType, unlockHandler, {
+                once: false, // Don't use once, we'll remove manually
+                passive: true,
+                capture: true
+            });
+        });
+        
+        // iOS-specific handlers
+        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden && this.audioContext) {
+                    await this.unlockAudioContext();
+                }
+            });
+            
+            window.addEventListener('focus', async () => {
+                if (this.audioContext) {
+                    await this.unlockAudioContext();
+                }
+            });
+        }
+    }
+    
+    // Enhanced audio context unlock with multiple strategies
+    async unlockAudioContext() {
+        if (!this.audioContext || this.audioContext.state === 'running') {
+            return true;
+        }
+        
+        console.log('Attempting to unlock audio context...');
+        
+        // Strategy 1: Basic resume
+        try {
+            await this.audioContext.resume();
+            if (this.audioContext.state === 'running') {
+                console.log('Audio context unlocked with basic resume');
+                return true;
+            }
+        } catch (error) {
+            console.warn('Basic resume failed:', error);
+        }
+        
+        // Strategy 2: Create and play silent buffer
+        try {
+            const silentBuffer = this.audioContext.createBuffer(1, 1, 22050);
+            const source = this.audioContext.createBufferSource();
+            source.buffer = silentBuffer;
+            source.connect(this.audioContext.destination);
+            source.start(0);
+            
+            await this.audioContext.resume();
+            if (this.audioContext.state === 'running') {
+                console.log('Audio context unlocked with silent buffer');
+                return true;
+            }
+        } catch (error) {
+            console.warn('Silent buffer strategy failed:', error);
+        }
+        
+        // Strategy 3: Oscillator method
+        try {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            gainNode.gain.value = 0; // Silent
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.value = 440;
+            oscillator.start(0);
+            oscillator.stop(this.audioContext.currentTime + 0.01);
+            
+            await this.audioContext.resume();
+            if (this.audioContext.state === 'running') {
+                console.log('Audio context unlocked with oscillator method');
+                return true;
+            }
+        } catch (error) {
+            console.warn('Oscillator strategy failed:', error);
+        }
+        
+        console.warn('All unlock strategies failed');
+        return false;
+    }
+
     storeDefaultValues() {
         this.defaultValues = {
             grainSize: 50,
@@ -531,12 +677,13 @@ arpScale: 'chromatic',
         requestAnimationFrame(() => this.animateVisualEffects());
     }
 
-    async initAudio() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Create mute control
-        this.muteGainNode = this.audioContext.createGain();
-        this.muteGainNode.gain.value = 1;
+   async initAudio() {
+    // Enhanced mobile audio context creation with retry logic
+    await this.createAudioContextWithRetry();
+    
+    // Create mute control
+    this.muteGainNode = this.audioContext.createGain();
+    this.muteGainNode.gain.value = 1;
         
         // Create volume booster
         this.volumeBooster = this.audioContext.createDynamicsCompressor();
@@ -2241,12 +2388,24 @@ arpScale: 'chromatic',
     }
     
     async resumeAudioContext() {
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-            console.log('Resuming audio context...');
-            await this.audioContext.resume();
-            console.log('Audio context state:', this.audioContext.state);
-        }
+    if (!this.audioContext) {
+        console.warn('No audio context to resume');
+        return false;
     }
+    
+    if (this.audioContext.state === 'suspended') {
+        console.log('Resuming suspended audio context...');
+        const success = await this.unlockAudioContext();
+        if (success) {
+            console.log('Audio context successfully resumed');
+        } else {
+            console.warn('Failed to resume audio context');
+        }
+        return success;
+    }
+    
+    return this.audioContext.state === 'running';
+}
     
     updateVolumeBoost() {
         if (this.volume >= 1.9) {
@@ -3555,30 +3714,57 @@ this.setScanPosition(1/9);
         this.setScanPosition(newPosition);
     }
 
-    async togglePlayback() {
-        if (!this.audioBuffer) return;
+  async togglePlayback() {
+    if (!this.audioBuffer) return;
+    
+    // Enhanced mobile audio context check
+    if (!this.audioContext) {
+        console.error('No audio context available');
+        return;
+    }
+    
+    // Ensure audio context is running before playback
+    const resumed = await this.resumeAudioContext();
+    if (!resumed && this.audioContext.state !== 'running') {
+        console.warn('Audio context not running, attempting additional unlock...');
+        await this.unlockAudioContext();
         
-        await this.resumeAudioContext();
-        
-        if (this.isPlaying) {
-            this.stopPlayback();
-        } else {
-            await this.startPlayback();
+        // Final check
+        if (this.audioContext.state !== 'running') {
+            console.error('Unable to start audio context');
+            document.getElementById('status').textContent = 'Audio blocked - tap play again';
+            return;
         }
     }
     
-    async startPlayback() {
-        if (!this.audioBuffer || this.isPlaying) return;
-        
-        await this.resumeAudioContext();
-        
-        this.isPlaying = true;
-        document.getElementById('playingStatus').textContent = 'Playing';
-        document.getElementById('playButton').textContent = '⏸ STOP';
-        document.getElementById('playButton').classList.add('playing');
-        
-        this.scheduleGrains();
+    if (this.isPlaying) {
+        this.stopPlayback();
+    } else {
+        await this.startPlayback();
     }
+}
+    
+  async startPlayback() {
+    if (!this.audioBuffer || this.isPlaying) return;
+    
+    // Double-check audio context state
+    if (this.audioContext.state !== 'running') {
+        console.warn('Audio context not running at playback start');
+        const success = await this.unlockAudioContext();
+        if (!success) {
+            console.error('Cannot start playback - audio context locked');
+            document.getElementById('status').textContent = 'Audio blocked - please interact and try again';
+            return;
+        }
+    }
+    
+    this.isPlaying = true;
+    document.getElementById('playingStatus').textContent = 'Playing';
+    document.getElementById('playButton').textContent = '⏸ STOP';
+    document.getElementById('playButton').classList.add('playing');
+    
+    this.scheduleGrains();
+}
     
     stopPlayback() {
         this.isPlaying = false;
