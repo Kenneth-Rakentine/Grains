@@ -2726,10 +2726,14 @@ arpScale: 'chromatic',
             if (e.target.files.length > 0) this.loadAudioFile(e.target.files[0]);
         });
         
-        // Transport controls
-        document.getElementById('playButton').addEventListener('click', () => {
-            this.togglePlayback();
-        });
+        // Note: Mobile-enhanced play button handler will be set up by initMobileAudio()
+// This is just a fallback for non-mobile devices
+const playButton = document.getElementById('playButton');
+if (playButton && !isMobileDevice()) {
+    playButton.addEventListener('click', () => {
+        this.togglePlayback();
+    });
+}
         
         document.getElementById('recordButton').addEventListener('click', () => {
             this.toggleRecording();
@@ -4578,3 +4582,100 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 console.log('GRAINS Enhanced Granular Sampler v.18 - All systems loaded');
+
+// === V.12 MOBILE AUDIO FIX (RESTORED) ===
+// Simple mobile audio unlock without context conflicts
+
+let mobileAudioUnlocked = false;
+
+function unlockMobileAudio() {
+    if (mobileAudioUnlocked || !window.granularSampler?.audioContext) return;
+    
+    const audioContext = window.granularSampler.audioContext;
+    
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            console.log('Mobile audio context resumed successfully');
+            mobileAudioUnlocked = true;
+            
+            // Update status
+            const status = document.getElementById('status');
+            if (status && status.textContent.includes('Mobile')) {
+                status.textContent = 'Ready - Audio unlocked for mobile';
+                status.style.color = '#4CAF50';
+            }
+        }).catch(err => {
+            console.warn('Failed to resume audio context:', err);
+        });
+    } else {
+        mobileAudioUnlocked = true;
+    }
+}
+
+// Mobile detection
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+}
+
+// Enhanced play button handling for mobile
+function enhancePlayButton() {
+    const playButton = document.getElementById('playButton');
+    if (!playButton) return;
+    
+    // Store the original click handler
+    const originalHandler = playButton.onclick;
+    
+    // Replace with enhanced handler
+    playButton.onclick = function(e) {
+        // First unlock mobile audio if needed
+        unlockMobileAudio();
+        
+        // Small delay to ensure audio context is ready
+        setTimeout(() => {
+            // Call the original granular sampler togglePlayback
+            if (window.granularSampler && window.granularSampler.togglePlayback) {
+                window.granularSampler.togglePlayback();
+            }
+        }, 100);
+    };
+}
+
+// Initialize mobile audio handling
+function initMobileAudio() {
+    if (!isMobileDevice()) return;
+    
+    console.log('Mobile device detected - Enhanced audio handling enabled');
+    
+    // Add mobile unlock events
+    const unlockEvents = ['touchstart', 'touchend', 'mousedown', 'keydown'];
+    
+    function handleFirstInteraction() {
+        unlockMobileAudio();
+        
+        // Remove listeners after first interaction
+        unlockEvents.forEach(event => {
+            document.removeEventListener(event, handleFirstInteraction, true);
+        });
+    }
+    
+    unlockEvents.forEach(event => {
+        document.addEventListener(event, handleFirstInteraction, true);
+    });
+    
+    // Show mobile-specific status (optional - remove if you don't want this)
+    const status = document.getElementById('status');
+    if (status && status.textContent === 'Ready to load audio file') {
+        status.textContent = 'Mobile device - Tap play to enable audio';
+        status.style.color = '#FF9800';
+    }
+    
+    // Enhance the play button
+    enhancePlayButton();
+}
+
+// Call mobile audio initialization after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Small delay to ensure granular sampler is initialized
+    setTimeout(initMobileAudio, 500);
+});
