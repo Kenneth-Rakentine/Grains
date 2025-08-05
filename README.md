@@ -84,6 +84,7 @@ START/STOP - Enable/disable arpeggiator (triggers when chromatic keys pressed)<b
 - Activate block to enable note per-scale<br> 
 - Inactive blocks skip corresponding scale note<br>
 - Active grid number dictates arp pattern length<br>
+- Press letter key on keyboard OR on-screen chromatic letter buttons beneath oscilloscope to trigger root note arpeggiation through scale according to scale note-select grid<br>
 
 **BANDPASS FILTER & LFO**
 <br>
