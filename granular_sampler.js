@@ -339,6 +339,7 @@ this.initAudio();
         
         // iOS audio state tracking
         this.iosAudioUnlocked = false;
+        this.audioChainConnected = false;
     }
 
      // Simple audio context creation (v.12 style)
@@ -622,6 +623,7 @@ arpScale: 'chromatic',
         await this.initArpeggiator();
         // Connect signal path
         this.connectAudioNodes();
+        this.audioChainConnected = true;
     }
 
     // Initialize Comb Seq LFO System
@@ -3652,9 +3654,28 @@ this.setScanPosition(1/9);
         }
     }
     
-    // Final check
+   // Final check
     if (this.audioContext.state === 'running') {
         log('✓✓✓ Audio context is RUNNING!');
+        
+        // CRITICAL FIX: Reconnect audio chain for iOS
+        if (!this.audioChainConnected) {
+            log('Reconnecting audio chain for iOS...');
+            try {
+                // Reconnect the final output
+                if (this.masterGainNode && this.volumeBooster) {
+                    this.masterGainNode.disconnect();
+                    this.volumeBooster.disconnect();
+                    this.masterGainNode.connect(this.volumeBooster);
+                    this.volumeBooster.connect(this.audioContext.destination);
+                    log('✓ Audio output reconnected');
+                }
+                this.audioChainConnected = true;
+            } catch (e) {
+                log(`Warning: Reconnect issue: ${e.message}`);
+            }
+        }
+        
         if (this.isPlaying) {
             log('Stopping playback...');
             this.stopPlayback();
@@ -3664,11 +3685,16 @@ this.setScanPosition(1/9);
             try {
                 await this.startPlayback();
                 log('✓ Playback started!');
+                
+                // Log first grain creation
+                setTimeout(() => {
+                    log(`Active grains: ${this.grains.length}`);
+                }, 500);
             } catch (e) {
                 log(`❌ Start failed: ${e.message}`);
             }
         }
-    } else {
+    }else {
         log(`❌❌❌ Context still ${this.audioContext.state}`);
         log('Try tapping play again...');
     }
