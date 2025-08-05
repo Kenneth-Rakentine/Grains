@@ -23,8 +23,9 @@ http://browsergrains.surge.sh/
 OR
 
 https://kenneth-rakentine.github.io/Grains/
-
-
+<br>
+![screenshot](https://i.imgur.com/0AMXjDR.png)
+<br>
 <br>
 
 ## Instructions:
