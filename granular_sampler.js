@@ -111,16 +111,7 @@ class GranularSampler {
         this.warpLengthLfoSpeed = 1;
         this.warpLengthLfoDepth = 0;
         
-        // NEW: SLOW Module
-        this.slowEnabled = false;
-        this.slowEndOfChain = false;
-        this.slowDelayNode = null;
-        this.slowBufferSource = null;
-        this.slowGainNode = null;
-        this.slowWetNode = null;
-        this.slowDryNode = null;
-        this.slowGain = 1;
-        this.slowMicroLoop = null;
+      
         
         // 3D Panner
         this.pannerNode = null;
@@ -369,9 +360,6 @@ this.initAudio();
             warpStartLfoDepth: 0,
             warpLengthLfoSpeed: 1,
             warpLengthLfoDepth: 0,
-            slowEnabled: false,
-            slowEndOfChain: false,
-            slowGain: 1,
             pannerXDepth: 0,
             pannerYRange: 0,
             pannerSpeed: 0.5,
@@ -589,7 +577,6 @@ arpScale: 'chromatic',
         await this.initRingModulator();
         await this.initSpectralFreezeAndPhaser();
         await this.initWarpModule();
-        await this.initSlowModule(); // NEW
         await this.init3DPannerAndFreqShifter();
         await this.initPT2399Delay();
         await this.initReverb();
@@ -613,7 +600,6 @@ arpScale: 'chromatic',
             'wavefold', 'ringModMix', 'ringModFreq',
             'spectralFreeze', 'spectralResonance', 'phaserRate', 'phaserDepth', 'phaserFeedback', 'phaserGain',
             'warpRate', 'warpStart', 'warpLength', 'warpStartLfoSpeed', 'warpStartLfoDepth', 'warpLengthLfoSpeed', 'warpLengthLfoDepth',
-            'slowGain',
             'pannerXDepth', 'pannerYRange', 'pannerSpeed',
             'freqShifterAmount', 'freqShifterMix',
             'pt2399Time', 'pt2399Feedback', 'pt2399Wow', 'pt2399LoFi', 'pt2399Mix', 'pt2399SoftClip',
@@ -922,28 +908,7 @@ arpScale: 'chromatic',
         this.setupWarpVisualization();
     }
 
-    // NEW: Initialize SLOW Module
-    async initSlowModule() {
-        // Main slow processing node
-        this.slowDelayNode = this.audioContext.createDelay(0.1); // Short micro-loop buffer
-        this.slowDelayNode.delayTime.value = 0.02; // 20ms micro-loop
-        
-        // Gain control for slow module
-        this.slowGainNode = this.audioContext.createGain();
-        this.slowGainNode.gain.value = this.slowGain;
-        
-        // Wet/dry mix nodes
-        this.slowWetNode = this.audioContext.createGain();
-        this.slowDryNode = this.audioContext.createGain();
-        this.slowWetNode.gain.value = 0; // Start bypassed
-        this.slowDryNode.gain.value = 1;
-        
-        // Connect slow chain
-        this.slowDelayNode.connect(this.slowGainNode);
-        this.slowGainNode.connect(this.slowWetNode);
-        
-        console.log('SLOW module initialized');
-    }
+   
 
     async init3DPannerAndFreqShifter() {
         this.pannerNode = this.audioContext.createPanner();
@@ -1548,26 +1513,7 @@ arpScale: 'chromatic',
     this.liquefierWetNode.connect(this.muteGainNode);
 }
 
-    // NEW: Connect SLOW module to end of chain if enabled
-    connectSlowEndOfChain() {
-        if (!this.slowEndOfChain) return;
-        
-        try {
-            // Disconnect normal routing
-            this.liquefierDryNode.disconnect(this.muteGainNode);
-            this.liquefierWetNode.disconnect(this.muteGainNode);
-            
-            // Route through slow module at end of chain
-            this.liquefierDryNode.connect(this.slowDelayNode);
-            this.liquefierWetNode.connect(this.slowDelayNode);
-            
-            // Connect slow output to final output
-            this.slowWetNode.connect(this.muteGainNode);
-            this.slowDryNode.connect(this.muteGainNode);
-        } catch (error) {
-            console.warn('Error connecting SLOW end of chain:', error);
-        }
-    }
+  
     // Helper functions for creating curves
     makeWavefolderCurve(amount) {
         const samples = 44100;
@@ -1799,93 +1745,10 @@ arpScale: 'chromatic',
         }
     }
 
-    // NEW: Update SLOW module
-    updateSlow() {
-        if (this.slowEnabled) {
-            // Enable slow effect
-            this.slowWetNode.gain.value = 1;
-            this.slowDryNode.gain.value = 0;
-            
-            // Update gain
-            this.slowGainNode.gain.value = this.slowGain;
-            
-            // Create micro-loop at 0.05x speed (very slow)
-            this.captureSlowMicroLoop();
-        } else {
-            // Disable slow effect
-            this.slowWetNode.gain.value = 0;
-            this.slowDryNode.gain.value = 1;
-        }
-        
-        // Handle end of chain routing
-        if (this.slowEndOfChain !== this.previousSlowEndOfChain) {
-            this.reconnectSlowChain();
-            this.previousSlowEndOfChain = this.slowEndOfChain;
-        }
-    }
+    
 
-    // NEW: Capture micro-loop for SLOW module
-    captureSlowMicroLoop() {
-        if (!this.audioBuffer || !this.slowEnabled) return;
-        
-        // Create a very short buffer for micro-loop (20ms)
-        const loopDuration = 0.02; // 20ms
-        const loopSamples = Math.floor(this.audioContext.sampleRate * loopDuration);
-        const startSample = Math.floor(this.scanPosition * this.audioBuffer.length);
-        
-        // Create buffer source for slow playback
-        if (this.slowBufferSource) {
-            this.slowBufferSource.stop();
-        }
-        
-        this.slowBufferSource = this.audioContext.createBufferSource();
-        
-        // Create micro-buffer
-        const microBuffer = this.audioContext.createBuffer(
-            this.audioBuffer.numberOfChannels,
-            loopSamples,
-            this.audioContext.sampleRate
-        );
-        
-        // Copy audio data to micro-buffer
-        for (let channel = 0; channel < this.audioBuffer.numberOfChannels; channel++) {
-            const sourceData = this.audioBuffer.getChannelData(channel);
-            const microData = microBuffer.getChannelData(channel);
-            
-            for (let i = 0; i < loopSamples; i++) {
-                const sourceIndex = (startSample + i) % sourceData.length;
-                microData[i] = sourceData[sourceIndex];
-            }
-        }
-        
-        this.slowBufferSource.buffer = microBuffer;
-        this.slowBufferSource.loop = true;
-        this.slowBufferSource.playbackRate.value = 0.05; // Very slow (5% speed)
-        
-        this.slowBufferSource.connect(this.slowDelayNode);
-        this.slowBufferSource.start();
-    }
-
-    // NEW: Reconnect SLOW chain for end of chain routing
-    reconnectSlowChain() {
-        try {
-            if (this.slowEndOfChain) {
-                this.connectSlowEndOfChain();
-            } else {
-                // Restore normal routing
-                this.liquefierDryNode.disconnect();
-                this.liquefierWetNode.disconnect();
-                this.slowWetNode.disconnect(this.muteGainNode);
-                this.slowDryNode.disconnect(this.muteGainNode);
-                
-                // Reconnect normal path
-                this.liquefierDryNode.connect(this.muteGainNode);
-                this.liquefierWetNode.connect(this.muteGainNode);
-            }
-        } catch (error) {
-            console.warn('Error reconnecting SLOW chain:', error);
-        }
-    }
+   
+    
 
     // UPDATED: Update PT2399 Delay with NEW soft clipping
     updatePT2399Delay() {
@@ -2293,8 +2156,6 @@ arpScale: 'chromatic',
     this.isMuted = false;
     this.combSeqEnabled = false;
     this.wrapEnabled = false;
-    this.slowEnabled = false;
-    this.slowEndOfChain = false;
     this.envelopeLoopEnabled = false;
     this.liquefierSmooth = true;
     
@@ -2329,8 +2190,6 @@ arpScale: 'chromatic',
     document.getElementById('muteButton').classList.remove('active');
     document.getElementById('stringSeqToggle').classList.remove('active');
     document.getElementById('warpToggle').classList.remove('active');
-    document.getElementById('slowToggle').classList.remove('active');
-    document.getElementById('slowEndOfChainToggle').classList.remove('active');
     document.getElementById('envelopeLoopToggle').classList.remove('active');
     document.getElementById('envelopeLoopToggle').textContent = 'Loop OFF';
     document.getElementById('liquefierSmoothBtn').classList.add('active');
@@ -2366,7 +2225,6 @@ arpScale: 'chromatic',
     this.updateCombSequencer();
     this.updateCombSeqButton();
     this.updateWarp();
-    this.updateSlow();
     this.updatePingResonator();
     this.updateLiquefierFilter();
     
@@ -4307,18 +4165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         envelopeToggle.textContent = 'Loop OFF';
     }
 
-    // NEW: Set SLOW default states
-    const slowToggle = document.getElementById('slowToggle');
-    if (slowToggle) {
-        slowToggle.textContent = 'SLOW';
-        slowToggle.classList.remove('active');
-    }
-
-    const slowEndOfChainToggle = document.getElementById('slowEndOfChainToggle');
-    if (slowEndOfChainToggle) {
-        slowEndOfChainToggle.textContent = 'End of Chain';
-        slowEndOfChainToggle.classList.remove('active');
-    }
+   
     
     setTimeout(() => {
         const header = document.querySelector('.main-header');
@@ -4349,19 +4196,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Don't show errors in status - keep it for load messages only
     });
     
-    console.log('GRAINS Enhanced Granular Sampler v.16 INITIALIZED!');
-    console.log('New Features in v.16:');
-    console.log('- Text logo replaces image (coming soon)');
-    console.log('- Fixed particle animations for continuous motion');
-    console.log('- Removed display screens from PT2399, Liquefier, and T-Resonator');
-    console.log('- Renamed T-Resonator to Ping Resonator with input gain and wet mix');
-    console.log('- Removed Additive Synthesis module');
-    console.log('- Added WARP Start Point and Loop Length LFOs');
-    console.log('- Added PT2399 soft clipping saturation');
-    console.log('- Added SLOW module with micro-loop at 0.05x speed');
-    console.log('- Status div only shows load messages, not errors');
+    console.log('GRAINS Enhanced Granular Sampler v.18INITIALIZED!');
     console.log('- Updated signal path diagram');
-    console.log('Signal Path: GRAINS → FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → SLOW → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → ENVELOPE → ISOLATOR → PING RESONATOR → LIQUEFIER → OUTPUT');
+    console.log('Signal Path: GRAINS → ARPEGGIATOR → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT');
 });
 
 // Performance optimization: Cleanup on page unload
