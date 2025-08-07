@@ -28,9 +28,12 @@ https://kenneth-rakentine.github.io/Grains/
 <br>
 <br>
 
-## Instructions:
+## Instructions:<br>
 
+> [!IMPORTANT]
+> **ON MOBILE: TURN OFF SILENT MODE ON YOUR PHONE TO HEAR AUDIO PLAYBACK**
 
+<br>
 **CONTROLS**
 (use keyboard or on-screen buttons)
 
