@@ -371,6 +371,28 @@ body::before {
     font-weight: 500;
     box-shadow: var(--shadow-deep);
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    line-height: 1.4;
+}
+
+/* Mobile alert styling within status */
+.status .mobile-alert {
+    color: var(--accent-warning);
+    font-weight: 600;
+    text-shadow: 0 0 4px rgba(255, 171, 64, 0.4);
+    display: inline-block;
+    margin-left: 8px;
+    animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gentle-pulse {
+    0%, 100% { 
+        opacity: 0.8; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 1; 
+        transform: scale(1.02);
+    }
 }
 
 /* Enhanced Oscilloscope with Glass Effects */

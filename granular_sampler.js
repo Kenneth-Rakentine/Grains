@@ -329,6 +329,12 @@ this.initAudio();
         this.setupPresets();
     }
 
+    // Mobile device detection
+isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
+}
+
     storeDefaultValues() {
         this.defaultValues = {
             grainSize: 50,
@@ -3289,8 +3295,15 @@ updateNotchFilter() {
             const arrayBuffer = await file.arrayBuffer();
             this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
             
-            document.getElementById('status').textContent = 
-                `Loaded: ${file.name} (${this.audioBuffer.duration.toFixed(2)}s)`;
+            // Create status message with mobile alert if needed
+const statusElement = document.getElementById('status');
+let statusHTML = `Loaded: ${file.name} (${this.audioBuffer.duration.toFixed(2)}s)`;
+
+if (this.isMobileDevice()) {
+    statusHTML += '<span class="mobile-alert"> • 📱 Turn off Silent Mode for audio playback</span>';
+}
+
+statusElement.innerHTML = statusHTML;
             
             this.drawWaveform();
             document.getElementById('waveformContainer').style.display = 'block';
