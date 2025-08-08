@@ -2271,47 +2271,48 @@ arpScale: 'chromatic',
     console.log('All parameters reset to defaults');
 }
     // Preset Management Functions
-    savePreset(name) {
-        if (!name) return false;
-        
-        const preset = {
-            name: name,
-            timestamp: Date.now(),
-            parameters: {}
-        };
-        
-        const parameterElements = document.querySelectorAll('input[type="range"], select');
-        parameterElements.forEach(element => {
-            if (element.id) {
-                preset.parameters[element.id] = element.value;
-            }
-        });
-        
-        const buttonElements = document.querySelectorAll('button.active');
-        preset.buttonStates = Array.from(buttonElements).map(btn => btn.id);
-        
-        const activeShapeBtn = document.querySelector('.grain-shape-btn.active');
-        if (activeShapeBtn) {
-            preset.grainShape = activeShapeBtn.dataset.shape;
+  savePreset(name) {
+    if (!name) return false;
+    
+    // Don't interrupt audio during save
+    const wasPlaying = this.isPlaying;
+    
+    const preset = {
+        name: name,
+        timestamp: Date.now(),
+        parameters: {}
+    };
+    
+    // Only save slider and select values, avoid problematic elements
+    const parameterElements = document.querySelectorAll('input[type="range"], select');
+    parameterElements.forEach(element => {
+        if (element.id && !element.id.startsWith('arp')) { // Exclude arpeggiator
+            preset.parameters[element.id] = element.value;
         }
-        
-        preset.envelopePoints = [...this.envelopePoints];
-        
-        preset.combSeqLfoStates = {};
-        this.combSeqLfos.forEach((lfoData, paramName) => {
-            preset.combSeqLfoStates[paramName] = {
-                depth: lfoData.depth,
-                active: lfoData.active
-            };
-        });
-        
-        this.presets.set(name, preset);
-        this.savePresetsToStorage();
-        this.updatePresetSelect();
-        
-        console.log(`Preset "${name}" saved`);
-        return true;
+    });
+    
+    // Save button states (excluding arpeggiator and problematic ones)
+    const buttonElements = document.querySelectorAll('button.active');
+    preset.buttonStates = Array.from(buttonElements)
+        .map(btn => btn.id)
+        .filter(id => id && !id.startsWith('arp') && id !== 'playButton'); // Exclude play button
+    
+    // Save grain shape
+    const activeShapeBtn = document.querySelector('.grain-shape-btn.active');
+    if (activeShapeBtn) {
+        preset.grainShape = activeShapeBtn.dataset.shape;
     }
+    
+    // Save envelope points
+    preset.envelopePoints = [...this.envelopePoints];
+    
+    this.presets.set(name, preset);
+    this.savePresetsToStorage();
+    this.updatePresetSelect();
+    
+    console.log(`Preset "${name}" saved`);
+    return true;
+}
 
     loadPreset(name) {
         const preset = this.presets.get(name);
@@ -4212,6 +4213,51 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('GRAINS Enhanced Granular Sampler v.18INITIALIZED!');
     console.log('- Updated signal path diagram');
     console.log('Signal Path: GRAINS → ARPEGGIATOR → BANDPASS FILTER → NOTCH FILTER → VOCODER → WAVEFOLDER → RING MOD → SPECTRAL FREEZE → PHASER → WARP → 3D PANNER → FREQ SHIFTER → PT2399 → REVERB → COMB SEQ → CHROMATIC ENVELOPE → 3-BAND ISOLATOR → LIQUEFIER → OUTPUT');
+
+// Navigation dots functionality
+const navDots = document.getElementById('navDots');
+if (navDots) {
+    const dots = navDots.querySelectorAll('.nav-dot');
+    
+    dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            const section = parseInt(dot.dataset.section);
+            const scrollTarget = (document.documentElement.scrollHeight - window.innerHeight) * (section / 100);
+            
+            window.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
+            });
+            
+            // Update active state
+            dots.forEach(d => d.classList.remove('active'));
+            dot.classList.add('active');
+            
+            // Remove active state after scroll completes
+            setTimeout(() => {
+                dot.classList.remove('active');
+            }, 1000);
+        });
+    });
+    
+    // Update active dot based on scroll position
+    window.addEventListener('scroll', () => {
+        const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+        
+        dots.forEach(d => d.classList.remove('active'));
+        
+        if (scrollPercent < 12.5) {
+            dots[0].classList.add('active');
+        } else if (scrollPercent < 37.5) {
+            dots[1].classList.add('active');
+        } else if (scrollPercent < 62.5) {
+            dots[2].classList.add('active');
+        } else {
+            dots[3].classList.add('active');
+        }
+    });
+}
+
 });
 
 // Performance optimization: Cleanup on page unload
