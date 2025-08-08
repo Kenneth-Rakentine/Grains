@@ -6,7 +6,7 @@ console.log(`
 ░░░░██║░░╚██╗██╔══██╗██╔══██║██║██║╚████║░╚═══██╗░░░
 ░░░░╚██████╔╝██║░░██║██║░░██║██║██║░╚███║██████╔╝░░░
 ░░░░░╚═════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝╚═╝░░╚══╝╚═════╝░░░░
-                    v.18
+                    v.19
 `);
 
 class GranularSampler {
@@ -4287,5 +4287,5 @@ window.addEventListener('unhandledrejection', (event) => {
     }
 });
 
-console.log('GRAINS Enhanced Granular Sampler v.18 - All systems loaded');
+console.log('GRAINS Enhanced Granular Sampler v.19 - All systems loaded');
 
