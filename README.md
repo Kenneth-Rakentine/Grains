@@ -57,12 +57,12 @@ Use **WARP** button to enable/disable micro-loop warping effect at current posit
 ### **RECORDING AUDIO**
 
 - Load audio file and start playing with granular synthesis
-- Press REC button (🔴) or R key
+- Press REC button (🔴) 
 - Grind your sound into dust particles - everything you hear gets recorded in real-time
-- Press STOP or R again to finish recording
+- Press STOP to finish recording
 - File downloads automatically as grains_[timestamp].webm format
 - Compatible with all modern browsers supporting WebM audio
-- Use format conversion software or CloudConvert in your browser to convert .webm files to .mp3: https://cloudconvert.com/webm-to-mp3
+- Use format conversion software or CloudConvert in your browser to convert .webm files to .mp3 for compatibility with other media players: https://cloudconvert.com/webm-to-mp3
 
 <br>
 
