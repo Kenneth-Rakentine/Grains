@@ -62,8 +62,9 @@ Use **WARP** button to enable/disable micro-loop warping effect at current posit
 - Press STOP or R again to finish recording
 - File downloads automatically as grains_[timestamp].webm format
 - Compatible with all modern browsers supporting WebM audio
+- Use format conversion software or CloudConvert in your browser to convert .webm files to .mp3: https://cloudconvert.com/webm-to-mp3
 
-
+<br>
 
 ## **PARAMETERS**
 
